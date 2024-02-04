@@ -53,7 +53,9 @@ import lombok.extern.slf4j.Slf4j;
  *
  * @since 2022/2/2 22:22
  */
+// RestControllerAdvice注解可以默认让其中的方法的返回对象转换成json字符串
 @RestControllerAdvice
+// 最高优先级，先触发这个advice再触发别的
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Slf4j
 public class WebExceptionHandler {
@@ -65,6 +67,7 @@ public class WebExceptionHandler {
         return Result.failed(e.getMsg());
     }
 
+    // 把sa-token库中的未登录状态map到本项目的enum中
     private static final Map<String, Status> ERR_CODE_MAPPING = MapUtil.<String, Status>builder()
             .put(NotLoginException.NOT_TOKEN, Status.NOT_TOKEN)
             .put(NotLoginException.INVALID_TOKEN, Status.INVALID_TOKEN)
@@ -78,9 +81,11 @@ public class WebExceptionHandler {
     @ExceptionHandler
     @ResponseBody
     public Result<Void> notLoginException(NotLoginException notLoginException) {
+        // 如果控制器抛出了未登录的异常
         ServletRequestAttributes servletRequestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletResponse response = servletRequestAttributes.getResponse();
+        // 如果存在回应
         if (response != null) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
         }
