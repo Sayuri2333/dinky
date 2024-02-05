@@ -69,6 +69,8 @@ public class ServletUtils {
     }
 
     public static ServletRequestAttributes getRequestAttributes() {
+        // 使用Spring提供的RequestContextHolder获取requestAttribute，这个对象可以通过get方法获取response和request对象
+        // btw，在controller层以及controllerAdvice类中的方法上，可以直接在方法参数中包含HttpServletRequest和HttpServletResponse对象，Spring会自动将当前请求的这些对象注入到方法中。
         RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
         return (ServletRequestAttributes) attributes;
     }

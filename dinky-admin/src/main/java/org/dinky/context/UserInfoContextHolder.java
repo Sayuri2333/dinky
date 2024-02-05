@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** UserInfoContextHolder */
 public class UserInfoContextHolder {
 
+    // 这个ContextHolder单纯就是用一个Map来存放每个用户对应的DTO
     private static final Map<Integer, UserDTO> USER_INFO = new ConcurrentHashMap<>();
 
     public static void set(Integer userId, UserDTO userInfo) {

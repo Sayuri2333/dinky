@@ -63,6 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class LogAspect {
 
+    // 使用方法定义切点，后续可以复用。这里绑定的是一个注解，打上这个注解的方法就会注册这个切面类
     @Pointcut("@annotation(org.dinky.data.annotations.Log)")
     public void logPointCut() {}
 
@@ -71,6 +72,7 @@ public class LogAspect {
      *
      * @param joinPoint 切点
      */
+    // 在controller层方法正常执行完，返回之后执行。AfterReturning方法中设置returning可以将方法的返回值配置为入参传入。
     @AfterReturning(pointcut = "logPointCut()", returning = "jsonResult")
     public void doAfterReturning(JoinPoint joinPoint, Object jsonResult) {
         handleCommonLogic(joinPoint, null, jsonResult);
@@ -89,21 +91,25 @@ public class LogAspect {
 
     protected void handleCommonLogic(final JoinPoint joinPoint, final Exception e, Object jsonResult) {
         try {
-            // 获得注解
+            // 是否存在
+            // 判断是否存在log注解，如果存在就获取
             Log controllerLog = getAnnotationLog(joinPoint);
             if (controllerLog == null) {
                 return;
             }
 
-            // 获取当前的用户
+            // 获取当前的用户，使用sa-token中的getLoginIdAsInt获取用户id，然后从UserInfoContextHolder获取存储的User类
             User user = UserInfoContextHolder.get(StpUtil.getLoginIdAsInt()).getUser();
 
             // *========数据库日志=========*//
+            // 新建一个OperLog，对应数据库中的dinky_sys_operate_log
             OperateLog operLog = new OperateLog();
+            // 使用hutool，把返回值JSON转换成Result对象
             Result result = JSONUtil.toBean(JSONUtil.parseObj(jsonResult), Result.class);
             operLog.setStatus(result.isSuccess() ? BusinessStatus.SUCCESS.ordinal() : BusinessStatus.FAIL.ordinal());
 
             // 请求的地址
+            // 通过requestAttributeCOntextHolder获取request对象，获取IP
             String ip = IpUtils.getIpAddr(ServletUtils.getRequest());
             operLog.setOperateIp(ip);
             // 返回参数
@@ -121,6 +127,7 @@ public class LogAspect {
             }
             operLog.setStatus(BusinessStatus.SUCCESS.ordinal());
             // 设置方法名称
+            // 可以通过以下方式获取被切入方法的className和methodName
             String className = joinPoint.getTarget().getClass().getName();
             String methodName = joinPoint.getSignature().getName();
             operLog.setMethod(className + "." + methodName + "()");
@@ -132,6 +139,7 @@ public class LogAspect {
             operLog.setOperateTime(LocalDateTime.now());
 
             // 保存数据库
+            // 直接通过hutool中的springUtil获取service层的bean进行数据库操作
             SpringUtil.getBean(OperateLogServiceImpl.class).saveLog(operLog);
 
         } catch (Exception exp) {

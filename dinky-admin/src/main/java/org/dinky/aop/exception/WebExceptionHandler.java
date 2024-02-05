@@ -85,11 +85,12 @@ public class WebExceptionHandler {
         ServletRequestAttributes servletRequestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletResponse response = servletRequestAttributes.getResponse();
-        // 如果存在回应
+        // 如果存在回应就把reponse的状态改为未授权
         if (response != null) {
+
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
         }
-
+        // 返回Result对象，根据notLoginException的类型对照ERRR_CODE_MAPPING修改status值
         String type = notLoginException.getType();
         Status status = ERR_CODE_MAPPING.getOrDefault(type, Status.NOT_TOKEN);
         return Result.authorizeFailed(status);
@@ -101,10 +102,13 @@ public class WebExceptionHandler {
      * @param e e
      * @return {@link Result}<{@link String}>
      */
+    // 用来定义当特定异常被抛出时，应该返回的状态码
     @ResponseStatus(HttpStatus.BAD_REQUEST)
+    // 指明处理的是MethodArgumentNotValidException，这种异常通常在Spring MVC中发生，当客户端请求参数验证失败时抛出。
     @ExceptionHandler({MethodArgumentNotValidException.class})
     @ResponseBody
     public Result<String> paramExceptionHandler(MethodArgumentNotValidException e) {
+        // 这个异常包含一个 BindingResult 对象，该对象包含关于数据绑定和验证错误的详细信息。通过访问这个 BindingResult 对象，你可以获取到具体哪些字段验证失败以及失败的原因。
         BindingResult exceptions = e.getBindingResult();
         // 判断异常中是否有错误信息，如果存在就使用异常中的消息，否则使用默认消息
         if (exceptions.hasErrors()) {
@@ -112,6 +116,7 @@ public class WebExceptionHandler {
             if (!errors.isEmpty()) {
                 // 这里列出了全部错误参数，按正常逻辑，只需要第一条错误即可
                 FieldError fieldError = (FieldError) errors.get(0);
+                // 如果有默认的message
                 if (StringUtils.isNotBlank(fieldError.getDefaultMessage())) {
                     return Result.paramsError(
                             Status.GLOBAL_PARAMS_CHECK_ERROR, fieldError.getField(), fieldError.getDefaultMessage());

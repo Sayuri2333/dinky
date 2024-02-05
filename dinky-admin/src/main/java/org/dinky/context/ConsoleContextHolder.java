@@ -61,26 +61,34 @@ public class ConsoleContextHolder {
      *
      * @return ConsoleContextHolder instance
      */
+    // 单例模式
     public static ConsoleContextHolder getInstances() {
         return instance;
     }
 
+    // 用于记录目前所有线程中存放的ProcessEntity的Map
     private final Map<String, ProcessEntity> logPross = new ConcurrentHashMap<>();
 
     /**
      * Get a list of all processes
      */
+    // 获取所有在跟踪的进程
     public List<ProcessEntity> list() {
         return new ArrayList<>(logPross.values());
     }
 
+    // 获取指定的进程
     public ProcessEntity getProcess(String processName) {
+        // 如果在map中存放了，就返回存放的
         if (logPross.containsKey(processName)) {
             return logPross.get(processName);
         }
         try {
+            // 不然就去本地文件目录中找。存放的地点应该是$user.dir$/tmp/log/$processName$.json
             String filePath = String.format("%s/tmp/log/%s.json", System.getProperty("user.dir"), processName);
+            // 读取文件中的内容为String类型
             String string = FileUtil.readString(filePath, StandardCharsets.UTF_8);
+            // 把文本字符串转换为ProcessEntity对象
             return JSONObject.parseObject(string, ProcessEntity.class);
         } catch (Exception e) {
             log.warn("Get process {} failed, maybe not exits", processName);
@@ -90,6 +98,7 @@ public class ConsoleContextHolder {
 
     /**
      * Add log messages to specific processes and process steps.
+     * 向进程或者进程步中添加log信息
      *
      * @param processName process name
      * @param stepPid     process step type
@@ -97,17 +106,21 @@ public class ConsoleContextHolder {
      * @throws BusException Throws an exception if the process does not exist
      */
     public void appendLog(String processName, String stepPid, String logLine, boolean recordGlobal) {
+        // 从map中获取进程实例
         if (!logPross.containsKey(processName)) {
             log.debug("Process {} does not exist, This log was abandoned", processName);
             return;
         }
         ProcessEntity process = logPross.get(processName);
+        // 如果是global，就向进程本身添加log
         if (recordGlobal) {
             process.appendLog(logLine);
         }
+        // 如果提供了step id，那就向进程步中也添加log
         if (stepPid != null) {
             ProcessStepEntity stepNode = getStepNode(stepPid, getStepsMap(processName));
             if (stepNode != null) {
+                // 找到的话就添加log，并更新最近更新时间
                 stepNode.appendLog(logLine);
                 process.setLastUpdateStep(stepNode);
             } else {
@@ -117,7 +130,9 @@ public class ConsoleContextHolder {
         }
         //   /TOPIC/PROCESS_CONSOLE/FlinkSubmit/12
         String topic = StrFormatter.format("{}/{}", SseTopic.PROCESS_CONSOLE.getValue(), processName);
+        // 异步发送
         CompletableFuture.runAsync(() -> {
+            // 使用SseSessionContextHolder向前端发送消息
             SseSessionContextHolder.sendTopic(topic, process);
         });
     }
@@ -257,6 +272,7 @@ public class ConsoleContextHolder {
      * 递归查找节点
      */
     private ProcessStepEntity findStepNode(String stepPid, CopyOnWriteArrayList<ProcessStepEntity> stepsMap) {
+        // 深度优先搜索，匹配step Id符合的进程步对象返回
         for (ProcessStepEntity processStepEntity : stepsMap) {
             if (processStepEntity.getKey().equals(stepPid)) {
                 return processStepEntity;
