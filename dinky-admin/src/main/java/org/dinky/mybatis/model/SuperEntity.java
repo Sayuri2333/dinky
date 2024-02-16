@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
@@ -49,6 +48,9 @@ import lombok.Setter;
 @Setter
 @Getter
 @ApiModel(value = "SuperEntity", description = "Super Base Entity", parent = Model.class)
+// 下面这个写法的意思时SuperEntity接收一个Model类的子类作为泛型传入，但SuperEntity本身并不是Model类的子类。
+// Model类是mybatis-plus包中用来将数据库表的记录映射到对象上，使得对象的操作直接映射到数据库的操作的类。
+// 下面包括了各个表中都公共包含的字段。
 public class SuperEntity<T extends Model<?>> extends Model<T> {
 
     /** 主键ID */
@@ -68,6 +70,8 @@ public class SuperEntity<T extends Model<?>> extends Model<T> {
     @ApiModelProperty(value = "Enabled", required = true, dataType = "Boolean", example = "true")
     private Boolean enabled;
 
+    // mybatis-plus中的注解，表示在插入数据时自动填充该字段的值
+    // 需要配置继承MetaObjectHandler来设置自动填充的策略，参照org.dinky.mybatis.handler.DateMetaObjectHandler类
     @TableField(fill = FieldFill.INSERT)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -78,7 +82,9 @@ public class SuperEntity<T extends Model<?>> extends Model<T> {
             example = "2021-05-28 00:00:00")
     private LocalDateTime createTime;
 
+    // mybatis-plus中的注解，表示在插入、更新数据时自动填充该字段的值
     @TableField(fill = FieldFill.INSERT_UPDATE)
+    // jackson包的注解，用于自定义 JSON 序列化和反序列化方法
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @ApiModelProperty(

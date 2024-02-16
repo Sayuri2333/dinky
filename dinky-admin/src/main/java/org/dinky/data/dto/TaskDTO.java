@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * StudioExecuteDTO
+ * 集群执行数据传输类
  *
  */
 @Getter
@@ -195,14 +196,14 @@ public class TaskDTO extends AbstractStatementDTO {
             value = "UseResult",
             dataType = "boolean",
             example = "true",
-            notes = "Flagindicatingwhethertousethequeryresult")
+            notes = "Flag indicating whether to use the query result")
     private boolean useResult;
 
     @ApiModelProperty(
             value = "UseChangeLog",
             dataType = "boolean",
             example = "false",
-            notes = "Flagindicatingwhethertousechangelogs")
+            notes = "Flag indicating whether to use change logs")
     private boolean useChangeLog = false;
 
     @ApiModelProperty(

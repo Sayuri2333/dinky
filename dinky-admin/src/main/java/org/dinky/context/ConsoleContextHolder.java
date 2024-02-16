@@ -139,30 +139,37 @@ public class ConsoleContextHolder {
 
     /**
      * Register a new process.
+     * 注册一个新进程
      *
      * @param type        process type
      * @param processName process name
      * @throws RuntimeException Throws an exception if the process already exists
      */
     public void registerProcess(ProcessType type, String processName) throws RuntimeException {
+        // 如果已经有了就不用再注册了
         if (logPross.containsKey(processName)) {
             throw new BusException(Status.PROCESS_REGISTER_EXITS);
         }
+        // builder注册
         ProcessEntity entity = ProcessEntity.builder()
                 .key(UUID.fastUUID().toString())
                 .log(new StringBuilder())
+                // 初始化
                 .status(ProcessStatus.INITIALIZING)
                 .type(type)
                 .title(type.getValue())
                 .startTime(LocalDateTime.now())
                 .children(new CopyOnWriteArrayList<>())
                 .build();
+        // 新建了之后放进去map里面
         logPross.put(processName, entity);
+        // 推送一下
         appendLog(processName, null, "Start Process:" + processName, true);
     }
 
     /**
      * Register a new process step.
+     * 注册一个新的进程步
      *
      * @param type          process step type
      * @param processName   process name
@@ -174,8 +181,10 @@ public class ConsoleContextHolder {
         if (!logPross.containsKey(processName)) {
             throw new BusException(StrFormatter.format("Process {} does not exist", type));
         }
+        // 因为已经产生步了，进程状态改为正在运行
         ProcessEntity process = logPross.get(processName);
         process.setStatus(ProcessStatus.RUNNING);
+        // 生成一个步
         ProcessStepEntity processStepEntity = ProcessStepEntity.builder()
                 .key(UUID.fastUUID().toString())
                 .status(ProcessStatus.RUNNING)
@@ -202,12 +211,14 @@ public class ConsoleContextHolder {
 
     /**
      * Mark the process as completed.
+     * 标记一个进程为结束状态。
      *
      * @param processName process name
      * @param status      Process status
      * @param e           exception object, optional
      */
     public void finishedProcess(String processName, ProcessStatus status, Throwable e) {
+        // 判断一下有没有这个进程
         if (!logPross.containsKey(processName)) {
             return;
         }
@@ -219,17 +230,20 @@ public class ConsoleContextHolder {
         if (e != null) {
             appendLog(processName, null, LogUtil.getError(e.getCause()), true);
         }
+        // 新建一个json文件来存放这个process的具体信息
         String filePath = String.format("%s/tmp/log/%s.json", System.getProperty("user.dir"), processName);
         if (FileUtil.exist(filePath)) {
             Assert.isTrue(FileUtil.del(filePath));
         }
         FileUtil.writeUtf8String(JSONObject.toJSONString(process), filePath);
+        // 写一下log，然后将这个进程删除
         appendLog(processName, null, StrFormatter.format("Process {} exit with status:{}", processName, status), true);
         logPross.remove(processName);
     }
 
     /**
      * Mark process step as completed.
+     * 标记步为完成状态。
      *
      * @param processName process name
      * @param step        process step type
@@ -253,6 +267,13 @@ public class ConsoleContextHolder {
                 true);
     }
 
+    /**
+     * 根据stepId获取步
+     *
+     * @param stepPid
+     * @param stepsMap
+     * @return
+     */
     private ProcessStepEntity getStepNode(String stepPid, CopyOnWriteArrayList<ProcessStepEntity> stepsMap) {
         ProcessStepEntity stepNode = findStepNode(stepPid, stepsMap);
         if (stepNode != null) {
@@ -286,6 +307,11 @@ public class ConsoleContextHolder {
         return null;
     }
 
+    /**
+     * 给定一个process的名字，返回其中的所有步
+     * @param processName process名称
+     * @return
+     */
     private CopyOnWriteArrayList<ProcessStepEntity> getStepsMap(String processName) {
         return logPross.get(processName).getChildren();
     }

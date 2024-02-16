@@ -23,6 +23,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// 自定义缓存管理器
 @Configuration
 public class CacheConfiguration {
     @Bean

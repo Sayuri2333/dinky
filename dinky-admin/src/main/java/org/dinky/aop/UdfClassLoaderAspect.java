@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UdfClassLoaderAspect {
 
+    // 定义切点
     @Pointcut("execution(* org.dinky.service.TaskService.*(..))")
     public void taskServicePointcut() {}
 
@@ -44,14 +45,18 @@ public class UdfClassLoaderAspect {
     @Pointcut("execution(* org.dinky.service.StudioService.*(..))")
     public void studioServicePointcut() {}
 
+    // 复合切点
     @Pointcut("apiServicePointcut() || taskServicePointcut() || studioServicePointcut()")
     public void allPointcut() {}
 
+    // 调用allPoint()方法中定义的切点，使用环绕方法切入。使用环绕方法时，需要调用proceedingJoinPoint.proceed()方法才会执行。
     @Around("allPointcut()")
     public Object round(ProceedingJoinPoint proceedingJoinPoint) {
         Object proceed = null;
+        // 获得当前的类加载器
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
+            // 执行方法
             proceed = proceedingJoinPoint.proceed();
         } catch (Throwable e) {
             if (!(e instanceof DinkyException)) {
@@ -60,6 +65,7 @@ public class UdfClassLoaderAspect {
             e.printStackTrace();
             throw (DinkyException) e;
         } finally {
+            // 在方法执行完成之后把类加载器换回来（可能是类加载器在方法执行过程中被换了）
             if (contextClassLoader != Thread.currentThread().getContextClassLoader()) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }

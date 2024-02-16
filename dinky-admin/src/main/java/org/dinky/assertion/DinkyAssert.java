@@ -32,12 +32,14 @@ import org.dinky.data.model.Task;
  */
 public interface DinkyAssert {
 
+    // 检查集群实例是否存在
     static void check(ClusterInstance clusterInstance) {
         if (clusterInstance.getId() == null) {
             throw new BusException("Flink 集群【" + clusterInstance.getId() + "】不存在");
         }
     }
 
+    // 检查taskDTO是否为空
     static void check(TaskDTO task) {
         if (task == null) {
             throw new BusException(Status.TASK_NOT_EXIST);

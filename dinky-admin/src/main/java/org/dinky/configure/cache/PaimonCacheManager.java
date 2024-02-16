@@ -25,8 +25,10 @@ import java.util.LinkedHashSet;
 import org.springframework.cache.Cache;
 import org.springframework.cache.support.AbstractCacheManager;
 
+// 自定义paimon缓存管理器，需要重写两个方法
 public class PaimonCacheManager extends AbstractCacheManager {
 
+    // 重写loadCaches方法，加载和返回所有的缓存实例。
     @Override
     protected Collection<? extends Cache> loadCaches() {
         Collection<Cache> caches = new LinkedHashSet<>();
@@ -37,8 +39,10 @@ public class PaimonCacheManager extends AbstractCacheManager {
         return caches;
     }
 
+    // 重写这个方法，用于定义当请求的缓存不存在时如何创建新的缓存。
     @Override
     protected Cache getMissingCache(String name) {
+        // 使用PaimonCache来进行缓存
         return new PaimonCache(name);
     }
 }

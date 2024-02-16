@@ -49,6 +49,9 @@ public class ProcessEntity {
     private LocalDateTime endTime;
     private long time;
     private ProcessStepEntity lastUpdateStep;
+    // 使用CopyOnWrite数组来存储这个步的信息，实现读写分离。在并发高的情况下不需要对读的操作进行加锁（写、删除、修改还是要加锁，但是这个的add方法里已经写上了）
+    // 如果在add或者remove操作没完成的时候读，会读到以前的数据。
+    // 需要注意CopyOnWrite数组在修改时会复制一个新的数组出来，修改新的数组，再将指向原来数组的引用修改为新的引用。所以可能会有内存占用的问题。也可以考虑ConcurrentMap
     private CopyOnWriteArrayList<ProcessStepEntity> children;
 
     public void appendLog(String str) {
