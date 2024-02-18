@@ -28,8 +28,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
+// 注册一个代理Servlet转发请求到Flink的Web界面。
 @Configuration
 public class FlinkWebProxyServletConfiguration implements EnvironmentAware {
+    // 模板字符串构成的URL，应该是根据具体的作业id来决定实际的值
     private static final String TARGET_URL = "http://{_authority}/#/job/running/{_jid}/overview";
 
     @Bean

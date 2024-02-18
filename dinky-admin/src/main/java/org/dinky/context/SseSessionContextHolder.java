@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SseSessionContextHolder {
-    // 使用一个Map来存储<Session id, 订阅者>信息
+    //使用<sessionId, topic订阅者>构成的map。topic订阅者会维护此session订阅的topic，以及使用的topic emitter。
     private static final Map<String, TopicSubscriber> sessionMap = new ConcurrentHashMap<>();
 
     /**
@@ -50,9 +50,11 @@ public class SseSessionContextHolder {
      * @throws BusException If the session does not exist.
      */
     public static Set<String> subscribeTopic(String sessionId, List<String> topics) {
+        // 如果存在这个session，那么就更新它订阅的topic
         if (exists(sessionId)) {
             return sessionMap.get(sessionId).updateTopics(topics);
         } else {
+            // 如果不存在，那就是有问题了
             HashSet<String> reconnectMessage = new HashSet<>(1);
             reconnectMessage.add(SseConstant.SSE_SESSION_INVALID);
             log.warn("session id is invalid");
@@ -67,6 +69,7 @@ public class SseSessionContextHolder {
      * @return The SseEmitter for the session.
      */
     public static SseEmitter connectSession(String sessionKey) {
+        // 给一个新的session绑定它最爱的SseEmitter。
         log.debug("New session wants to connect: {}", sessionKey);
         if (exists(sessionKey)) {
             log.warn("Session key already exists: {}", sessionKey);

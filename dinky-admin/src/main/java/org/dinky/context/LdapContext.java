@@ -42,11 +42,12 @@ public class LdapContext {
 
     /**
      * Get the LDAP context source object.
-     *
+     * 配置并返回一个LdapContextSource对象，它是Spring LDAP框架中用于访问LDAP服务器的基础组件。
      * @return LDAP context source object
      */
     public static LdapContextSource getLdapContext() {
         LdapContextSource contextSource = new LdapContextSource();
+        // 从SystemConfiguration中获取LDAP连接需要的URL、基础DN、用户DN和密码
         contextSource.setUrl(configuration.getLdapUrl().getValue());
         contextSource.setBase(configuration.getLdapBaseDn().getValue());
         contextSource.setUserDn(configuration.getLdapUserDn().getValue());
@@ -57,13 +58,15 @@ public class LdapContext {
 
     /**
      * Get the search controls for LDAP search.
-     *
+     * 定义对LDAP服务器执行搜索时的行为
      * @return Search controls for LDAP search
      */
     public static SearchControls getControls() {
         SearchControls controls = new SearchControls();
+        // 搜索将在指定的基础DN的整个子树中进行
         controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
         // controls.setCountLimit(ldapConfig.getCountLimit());
+        // 设置搜索时间限制
         controls.setTimeLimit(configuration.getLdapTimeLimit().getValue());
         return controls;
     }

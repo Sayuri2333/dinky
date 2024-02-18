@@ -60,6 +60,7 @@ public class AdminController {
 
     /**
      * user login
+     * 登录
      *
      * @param loginDTO basic information for user login
      * @return {@link Result}{@link UserDTO} obtain the user's UserDTO
@@ -74,6 +75,7 @@ public class AdminController {
 
     /**
      * user logout
+     * 登出
      *
      * @return {@link Result}{@link Void} user loginout status information
      */
@@ -87,6 +89,7 @@ public class AdminController {
 
     /**
      * get current user info
+     * 获得当前用户信息
      *
      * @return {@link Result}{@link UserDTO} obtain the current user's UserDTO
      */
@@ -98,6 +101,7 @@ public class AdminController {
 
     /**
      * choose tenant by tenantId
+     * 选择登录的租户
      *
      * @param tenantId
      * @return {@link Result}{@link Tenant} the specified tenant
@@ -111,6 +115,7 @@ public class AdminController {
 
     /**
      * get tenant info
+     * 获取当前用户的token信息
      *
      * @return {@link Result}{@link SaTokenInfo}
      */
@@ -120,6 +125,7 @@ public class AdminController {
         return Result.succeed(StpUtil.getTokenInfo());
     }
 
+    // 获取当前dinky版本
     @GetMapping("/version")
     @ApiOperation(value = "Query Service Version", notes = "Query Dinky Service Version Number")
     public Result<Object> getVersionInfo() {

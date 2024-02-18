@@ -33,11 +33,16 @@ import org.apache.ibatis.session.RowBounds;
 
 import java.util.Properties;
 
+// @Intercepts注解声明了这个拦截器要拦截的MyBatis操作。在这个例子中，它定义了两个@Signature，这意味着拦截器会拦截Executor类的query方法。
+// 这个签名只会拦截select语句。如果想要拦截其他语句如update，配置差不多：
+// @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class})
 @Intercepts({
+        // 第一个@Signature拦截的是四参数的query方法版本
     @Signature(
             type = Executor.class,
             method = "query",
             args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+        // 第二个拦截的是六参数的版本， 包含额外的两个参数
     @Signature(
             type = Executor.class,
             method = "query",
@@ -52,13 +57,18 @@ import java.util.Properties;
 })
 public class PostgreSQLQueryInterceptor implements Interceptor {
 
+    // intercept方法是拦截器的核心，它在MyBatis执行拦截的方法（在此例中为query方法）时被调用。
+    // 在intercept方法内，可以获取并修改MyBatis操作的各种参数。例如，可以修改查询语句或查询参数等。
+    // 拦截器方法可以直接获得Invocation对象，类似spring中的环绕切入，可以控制方法本身是否执行（本质也是使用动态代理）
     @Override
     public Object intercept(final Invocation invocation) throws Throwable {
+        // 在这个特定的实现中，intercept方法实际上没有修改任何参数或行为
         Object[] args = invocation.getArgs();
         MappedStatement ms = (MappedStatement) args[0];
         Object parameter = args[1];
         RowBounds rowBounds = (RowBounds) args[2];
         ResultHandler<?> resultHandler = (ResultHandler<?>) args[3];
+        // 获得这个执行器对象本身
         Executor executor = (Executor) invocation.getTarget();
         CacheKey cacheKey;
         BoundSql boundSql;
@@ -73,6 +83,7 @@ public class PostgreSQLQueryInterceptor implements Interceptor {
     }
 
     @Override
+    // plugin方法用于创建当前拦截器的代理，以便将其插入到MyBatis的执行链中。这是通过调用Plugin.wrap实现的。
     public Object plugin(final Object target) {
         return Plugin.wrap(target, this);
     }

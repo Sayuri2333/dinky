@@ -31,6 +31,12 @@ import lombok.Setter;
  */
 @Setter
 @Getter
+// ConfigurationProperties注解可以将配置文件中的属性值映射到bean上。
+// 配置prefix表示只有以指定prefix为前缀的属性才会被绑定。
+// 使用@ConfigurationProperties可以创建类型安全的配置。这意味着如果配置值的格式不正确或与Java对象的字段类型不兼容，应用在启动时会报错。
+// @ConfigurationProperties支持松散绑定，fieldName对应配置文件中的field_name。
+// 使用时可以在这个类上加上component注解来启用，也可以在别的地方使用@EnableConfigurationProperties来启用
+// 对应的这个POJO类需要有getter、setter方法才行
 @ConfigurationProperties(prefix = "dinky.mybatis-plus.fill")
 public class MybatisPlusFillProperties {
 

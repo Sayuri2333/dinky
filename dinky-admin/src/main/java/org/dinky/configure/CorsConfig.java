@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
+// 跨域请求的配置类。这个配置允许了对于所有的URL的来自任何源的跨域请求，且不管其是什么访问方法。
 public class CorsConfig {
 
     @Bean

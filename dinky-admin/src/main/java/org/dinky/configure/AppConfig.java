@@ -74,6 +74,7 @@ public class AppConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());
         // 注册Sa-Token的路由拦截器
+        // 对API接口的访问都先鉴权
         registry.addInterceptor(new SaInterceptor(handler -> {
                     SaRouter.match("/openapi/**", r -> {
                         if (!StpUtil.isLogin()) {
@@ -87,6 +88,7 @@ public class AppConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**", "/openapi/**")
                 .excludePathPatterns("/api/login", "/api/ldap/ldapEnableStatus", "/download/**", "/druid/**");
 
+        // 检查下请求提供的租户信息与UserInfoContextHolder中存储的UserDTO的租户信息是否相同
         registry.addInterceptor(new TenantInterceptor())
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/api/login", "/api/ldap/ldapEnableStatus")

@@ -40,11 +40,16 @@ import cn.hutool.core.lang.Opt;
  *
  * @since 2021/5/25
  */
+// SuperService中实现了selectForProTable方法，是专门为了支持前端表格（如 "ProTable"）展示而设计的
 public class SuperServiceImpl<M extends SuperMapper<T>, T> extends ServiceImpl<M, T> implements ISuperService<T> {
 
+    // 接收查询参数，
     private ProTableResult<T> selectForProTable(JsonNode params, boolean isDelete, Map<String, Object> paramsMap) {
+        // 获取当前页
         Integer current = params.has("current") ? params.get("current").asInt() : 1;
+        // 获取PageSize
         Integer pageSize = params.has("pageSize") ? params.get("pageSize").asInt() : 10;
+        // 封装一个查询wrapper
         QueryWrapper<T> queryWrapper = new QueryWrapper<>();
         ProTableUtil.autoQueryDefalut(params, queryWrapper, isDelete);
         ObjectMapper mapper = new ObjectMapper();

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** UserInfoContextHolder */
+// 这是个不受spring管理的类，对于Spring程序来说就是一个全局、静态的静态类。Spring程序中与用户交互的各个线程均可以访问类中的内容、方法。
 public class UserInfoContextHolder {
 
     // 这个ContextHolder单纯就是用一个Map来存放每个用户对应的DTO

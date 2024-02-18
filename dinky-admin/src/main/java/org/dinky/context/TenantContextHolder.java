@@ -22,8 +22,10 @@ package org.dinky.context;
 import java.util.Optional;
 
 /** TenantContextHolder */
+// 租户上下文对象
 public class TenantContextHolder {
 
+    // 使用threadLocal实现，每个线程可以单独设置TENANT_CONTEXT以及IGNORE_TENANT的值
     private static final ThreadLocal<Object> TENANT_CONTEXT = new InheritableThreadLocal<>();
     private static final ThreadLocal<Boolean> IGNORE_TENANT = new InheritableThreadLocal<>();
 

@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.util.SaTokenConsts;
 
+// 定义sa-token框架的核心组件，用来处理token相关的逻辑
 @Configuration
 public class SaTokenConfigure {
     // Sa-Token 整合 jwt (Simple 简单模式)

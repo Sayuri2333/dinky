@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
  *
  * @since 2021/6/29 15:36
  */
+// 用来获取bean的工具
 @Component
 public class SpringContextUtils implements ApplicationContextAware {
 

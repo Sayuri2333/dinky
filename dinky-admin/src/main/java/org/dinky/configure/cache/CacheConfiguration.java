@@ -26,6 +26,8 @@ import org.springframework.context.annotation.Configuration;
 // 自定义缓存管理器
 @Configuration
 public class CacheConfiguration {
+    // 把自定义的缓存管理器加入spring容器的话会使用这个
+    // spring的缓存支持使用注解来操作，使用@Cacheable, @Cacheput, @CacheEvict等注解支持缓存查询、缓存更新、缓存删除等功能。使用@Caching注解可以同时指定多个注解
     @Bean
     public CacheManager cacheManager() {
         return new PaimonCacheManager();

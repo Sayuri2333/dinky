@@ -23,14 +23,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+// 用于配置定时任务执行的线程池
 @Configuration
 public class ScheduledConfig {
 
+    // 通过定义ThreadPoolTaskScheduler的Bean，它自定义了Spring的调度任务使用的线程池
+    // 用于@Scheduled注解方法
     @Bean
     public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
         threadPoolTaskScheduler.setPoolSize(10);
+        // 设置线程池中线程名称的前缀
         threadPoolTaskScheduler.setThreadNamePrefix("scheduler-");
+        // 当任务被取消时将其从调度器中删除，有助于防止资源泄露。
         threadPoolTaskScheduler.setRemoveOnCancelPolicy(true);
         return threadPoolTaskScheduler;
     }

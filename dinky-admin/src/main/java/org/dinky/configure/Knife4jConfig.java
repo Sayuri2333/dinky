@@ -58,7 +58,10 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
 
 @Configuration
 @EnableSwagger2WebMvc
+// 自动生成包含所有final字段的构造函数，使得这些字段可以通过依赖注入的方式被Spring自动赋值
+// 如果没有这个注解的话会实例化失败，因为 final 字段必须在对象构造时就被初始化，而如果没有合适的构造函数，Spring 就没有办法在创建对象时为这些字段提供值。
 @RequiredArgsConstructor
+// @Import注解用于导入其他配置类或组件到当前Spring应用的容器中
 @Import(BeanValidatorPluginsConfiguration.class)
 public class Knife4jConfig {
 
@@ -69,17 +72,21 @@ public class Knife4jConfig {
     @Bean(value = "defaultApi2")
     public Docket defaultApi2() {
 
+        // 定义一个Swagger的Docket Bean，用于配置Swagger文档生成的详细参数。
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
                 .groupName(dinkyVersion)
                 .select()
+                // 指定扫描哪个包下的Controller
                 .apis(RequestHandlerSelectors.basePackage("org.dinky.controller"))
+                // 不基于URL对controller做任何过滤，所有的都加入文档
                 .paths(PathSelectors.any())
                 .build()
                 .extensions(openApiExtensionResolver.buildSettingExtensions());
     }
 
     private ApiInfo apiInfo() {
+        // 设置Api文档的基本信息如标题、描述、版本等
         return new ApiInfoBuilder()
                 .title("Dinky Rest API Document")
                 .description("Dinky Rest API Document")

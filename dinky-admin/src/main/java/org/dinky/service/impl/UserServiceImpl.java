@@ -83,6 +83,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 2021/11/28 13:39
  */
 @Service
+// 不知道用final关键字修饰注入的service有啥作用，猜可能是用来强调依赖注入的不变性
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implements UserService {
@@ -178,6 +179,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
     public Result<UserDTO> loginUser(LoginDTO loginDTO) {
         User user = null;
         try {
+            // 判断是否使用LDAP协议进行登录
             // Determine the login method (LDAP or local) based on the flag in loginDTO
             user = loginDTO.isLdapLogin() ? ldapLogin(loginDTO) : localLogin(loginDTO);
         } catch (AuthException e) {
@@ -244,7 +246,9 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         }
     }
 
+    // 本地登录
     private User localLogin(LoginDTO loginDTO) throws AuthException {
+
         // Get user from local database by username
         User user = getUserByUsername(loginDTO.getUsername());
         if (Asserts.isNull(user)) {

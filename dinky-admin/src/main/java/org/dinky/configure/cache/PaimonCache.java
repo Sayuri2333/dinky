@@ -41,10 +41,12 @@ import cn.hutool.core.convert.Convert;
 /**
  * paimon缓存
  */
+// 结合Hutool的TimedCache以及PaimonCache的二级缓存实现类
 public class PaimonCache extends AbstractValueAdaptingCache {
     private static final Class<CacheData> clazz = CacheData.class;
     // 缓存名称
     private final String cacheName;
+    // 指定使用dinky_cache表存
     private static final String TABLE_NAME = PaimonTableConstant.DINKY_CACHE;
     /**
      * TIMEOUT CACHE

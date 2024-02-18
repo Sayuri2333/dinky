@@ -32,23 +32,28 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * DateMeta Object Handler
+ * 用于日期相关字段的自动填充的Handler。
  *
  * @since 2021/5/25
  */
 @Slf4j
 public class DateMetaObjectHandler implements MetaObjectHandler {
 
+    // 具体字段的名称是通过这个配置POJO对象传入的
     private final MybatisPlusFillProperties mybatisPlusFillProperties;
 
     public DateMetaObjectHandler(MybatisPlusFillProperties mybatisPlusFillProperties) {
         this.mybatisPlusFillProperties = mybatisPlusFillProperties;
     }
 
+    // 用于控制是否开启插入操作的自动填充功能。
+    // 如果这个方法返回 true，则表示启用了插入时的自动填充。返回 false 则表示禁用。禁用的话insertFill中的代码就执行不了了
     @Override
     public boolean openInsertFill() {
         return mybatisPlusFillProperties.getEnableInsertFill();
     }
 
+    // 这个也一样
     @Override
     public boolean openUpdateFill() {
         return mybatisPlusFillProperties.getEnableUpdateFill();
@@ -61,6 +66,7 @@ public class DateMetaObjectHandler implements MetaObjectHandler {
         Object updateTime = getFieldValByName(mybatisPlusFillProperties.getUpdateTimeField(), metaObject);
         Object name = getFieldValByName(mybatisPlusFillProperties.getName(), metaObject);
         if (createTime == null) {
+            // setFieldValByName可以修改指定field的值
             setFieldValByName(mybatisPlusFillProperties.getCreateTimeField(), LocalDateTime.now(), metaObject);
         }
         if (updateTime == null) {
@@ -70,6 +76,7 @@ public class DateMetaObjectHandler implements MetaObjectHandler {
             setFieldValByName(mybatisPlusFillProperties.getUpdateTimeField(), name, metaObject);
         }
         try {
+            // 把当前线程的用户id作为用户标识填入creator、updater、operator等字段
             int loginIdAsInt = StpUtil.getLoginIdAsInt();
             setFillFieldValue(metaObject, loginIdAsInt);
         } catch (Exception e) {
@@ -78,6 +85,7 @@ public class DateMetaObjectHandler implements MetaObjectHandler {
     }
 
     private void setFillFieldValue(MetaObject metaObject, int userId) {
+        // getFieldValByName可以获得当前field的值
         Object creator = getFieldValByName(mybatisPlusFillProperties.getCreatorField(), metaObject);
         Object updater = getFieldValByName(mybatisPlusFillProperties.getUpdaterField(), metaObject);
         Object operator = getFieldValByName(mybatisPlusFillProperties.getOperatorField(), metaObject);

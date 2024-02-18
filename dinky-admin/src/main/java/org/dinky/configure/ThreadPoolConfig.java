@@ -34,11 +34,13 @@ public class ThreadPoolConfig {
      *
      * @return
      */
+    // 提供用于任务执行的线程池
     @Bean
     public Executor scheduleRefreshMonitorDataExecutor() {
         ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
-        // 核心线程数
+        // 核心线程数，核心线程会一直存活，即使处于闲置状态
         threadPoolTaskExecutor.setCorePoolSize(10);
+        // 允许核心线程超时并关闭
         threadPoolTaskExecutor.setAllowCoreThreadTimeOut(true);
         // 最大线程数
         threadPoolTaskExecutor.setMaxPoolSize(200);
@@ -46,7 +48,7 @@ public class ThreadPoolConfig {
         threadPoolTaskExecutor.setQueueCapacity(1000);
         // 配置线程池前缀
         threadPoolTaskExecutor.setThreadNamePrefix("SCH-refresh-mt-");
-        // 阻塞策略
+        // 阻塞策略，如果提交任务时发现线程池已满，会使提交任务的线程阻塞
         threadPoolTaskExecutor.setRejectedExecutionHandler(new BlockPolicy());
         threadPoolTaskExecutor.initialize();
         return threadPoolTaskExecutor;
