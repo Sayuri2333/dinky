@@ -89,9 +89,13 @@ public class Explainer {
     }
 
     public Explainer initialize(JobConfig config, String statement) {
+        // 初始化ClassLoader
         DinkyClassLoaderUtil.initClassLoader(config, jobManager.getDinkyClassLoader());
+        // 删掉sql中所有的注释后，整理出来sql的语句
         String[] statements = SqlUtil.getStatements(SqlUtil.removeNote(statement));
+        // 提取出这一段sql语句中用到的UDF实例
         List<UDF> udfs = parseUDFFromStatements(statements);
+        // 设置Job的参数
         jobManager.setJobParam(new JobParam(udfs));
         try {
             JobUDFBuilder.build(jobManager).run();
@@ -101,6 +105,7 @@ public class Explainer {
         return this;
     }
 
+    // 对sql语句每一段进行分类
     public JobParam pretreatStatements(String[] statements) {
         List<StatementParam> ddl = new ArrayList<>();
         List<StatementParam> trans = new ArrayList<>();
@@ -108,15 +113,18 @@ public class Explainer {
         List<String> statementList = new ArrayList<>();
         List<UDF> udfList = new ArrayList<>();
         for (String item : statements) {
+            // 删除掉这一段中的注释，然后将全局变量的标志替换为其实际的值
             String statement = executor.pretreatStatement(item);
             if (statement.isEmpty()) {
                 continue;
             }
+            // 正则匹配一下这段sql是干嘛的
             SqlType operationType = Operations.getOperationType(statement);
-            if (operationType.equals(SqlType.ADD)) {
+            if (operationType.equals(SqlType.ADD)) { // 写的是ADD CUSTOMJAR语句的时候
+                // 把这些custom jar加入other plugin里面
                 AddJarSqlParseStrategy.getAllFilePath(statement)
                         .forEach(t -> jobManager.getUdfPathContextHolder().addOtherPlugins(t));
-                (executor.getDinkyClassLoader())
+                (executor.getDinkyClassLoader()) // 加入ClassLoader
                         .addURLs(URLUtils.getURLs(
                                 jobManager.getUdfPathContextHolder().getOtherPluginsFiles()));
             } else if (operationType.equals(SqlType.ADD_JAR)) {
@@ -161,6 +169,7 @@ public class Explainer {
 
     private Configuration getCombinationConfig() {
         CustomTableEnvironment cte = executor.getCustomTableEnvironment();
+        // 把初始的一些config跟后续加上的config合并在一起
         Configuration rootConfig = cte.getRootConfiguration();
         Configuration config = cte.getConfig().getConfiguration();
         Configuration combinationConfig = new Configuration();
@@ -169,6 +178,7 @@ public class Explainer {
         return combinationConfig;
     }
 
+    // 从Statement中提取出使用的UDF
     public List<UDF> parseUDFFromStatements(String[] statements) {
         List<UDF> udfList = new ArrayList<>();
         for (String statement : statements) {

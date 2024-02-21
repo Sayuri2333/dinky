@@ -45,6 +45,10 @@ public interface JobHandler {
     boolean close();
 
     static JobHandler build() {
+        // ServiceLoader 机制来动态加载并返回一个 JobHandler 接口的实现
+        // ServiceLoader会扫描应用的类路径，寻找META-INF/services目录下名为JobHandler全限定名的文件。
+        // 在META-INF/services目录下的对应文件中，应列出所有JobHandler接口实现类的全限定名，每个实现类名占一行。
+        // 对于文件中列出的每个实现类，ServiceLoader将尝试加载并实例化这些类。
         ServiceLoader<JobHandler> jobHandlers = ServiceLoader.load(JobHandler.class);
         for (JobHandler jobHandler : jobHandlers) {
             return jobHandler;

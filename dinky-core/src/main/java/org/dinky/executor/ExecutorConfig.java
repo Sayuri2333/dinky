@@ -238,6 +238,7 @@ public class ExecutorConfig {
         return host + ":" + port;
     }
 
+    // 如果不是local模式就返回true
     public boolean isRemote() {
         return !GatewayType.get(type).isLocalExecute();
     }

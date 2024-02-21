@@ -140,8 +140,9 @@ public abstract class Executor {
         if (classLoader != null) {
             try {
                 StreamExecutionEnvironment env = this.environment;
-                // Fix the Classloader in the env above  to appClassLoader, causing ckp to fail to compile
+                // Fix the Classloader in the env above to appClassLoader, causing ckp to fail to compile
                 ReflectUtil.setFieldValue(env, "userClassloader", classLoader);
+                // 配置自定义的类加载器来加载用户代码，不会替代child-first或者parent-first加载Flink本身的代码或者插件类的代码
                 env.configure(env.getConfiguration(), classLoader);
             } catch (Throwable e) {
                 log.warn(
@@ -154,9 +155,10 @@ public abstract class Executor {
         initClassloader(classLoader);
         this.dinkyClassLoader = classLoader;
         if (executorConfig.isValidParallelism()) {
+            // 配置并行度
             environment.setParallelism(executorConfig.getParallelism());
         }
-
+        // 创建自定义的表执行环境并配置其config
         tableEnvironment = createCustomTableEnvironment(classLoader);
         CustomTableEnvironmentContext.set(tableEnvironment);
 

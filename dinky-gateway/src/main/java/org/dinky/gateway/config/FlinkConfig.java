@@ -49,6 +49,7 @@ import lombok.Setter;
 @ApiModel(value = "FlinkConfig", description = "Configuration for a Flink job")
 public class FlinkConfig {
 
+    // job名称
     @ApiModelProperty(
             value = "Name of the Flink job",
             dataType = "String",
@@ -56,6 +57,7 @@ public class FlinkConfig {
             notes = "Name of the Flink job")
     private String jobName;
 
+    // job id
     @ApiModelProperty(
             value = "ID of the Flink job",
             dataType = "String",
@@ -63,6 +65,7 @@ public class FlinkConfig {
             notes = "ID of the Flink job")
     private String jobId;
 
+    // flink 版本
     @ApiModelProperty(
             value = "Flink version",
             dataType = "String",
@@ -70,6 +73,7 @@ public class FlinkConfig {
             notes = "Version of Flink used for the job")
     private String flinkVersion;
 
+    // 动作，savepoint停止还是普通停止
     @ApiModelProperty(
             value = "Action to perform (e.g., START, STOP)",
             dataType = "String",
@@ -77,6 +81,7 @@ public class FlinkConfig {
             notes = "Action to perform for the Flink job")
     private ActionType action;
 
+    // 触发savepoint的操作类型
     @ApiModelProperty(
             value = "Type of savepoint (e.g., TRIGGER, CANCEL)",
             dataType = "String",
@@ -84,6 +89,7 @@ public class FlinkConfig {
             notes = "Type of savepoint to create")
     private SavePointType savePointType;
 
+    // savepoint路径
     @ApiModelProperty(
             value = "Path to savepoint",
             dataType = "String",
@@ -91,6 +97,7 @@ public class FlinkConfig {
             notes = "Path to the savepoint")
     private String savePoint;
 
+    // flink的额外参数配置
     @ApiModelProperty(
             value = "Additional configuration properties",
             dataType = "List",

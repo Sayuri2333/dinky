@@ -41,6 +41,7 @@ import lombok.Setter;
 @ApiModel(value = "ClusterConfig", description = "Configuration for a Flink cluster")
 public class ClusterConfig {
 
+    // flink-conf文件路径
     @ApiModelProperty(
             value = "Path to Flink configuration file",
             dataType = "String",
@@ -48,6 +49,7 @@ public class ClusterConfig {
             notes = "Path to the Flink configuration file")
     private String flinkConfigPath;
 
+    // flink lib路径
     @ApiModelProperty(
             value = "Path to Flink library directory",
             dataType = "String",
@@ -55,6 +57,7 @@ public class ClusterConfig {
             notes = "Path to the Flink library directory")
     private String flinkLibPath;
 
+    // hadoop conf路径，yarn-site之类的
     @ApiModelProperty(
             value = "Path to YARN configuration file",
             dataType = "String",
@@ -62,6 +65,7 @@ public class ClusterConfig {
             notes = "Path to the YARN configuration file")
     private String hadoopConfigPath;
 
+    // 其他的hadoop参数
     @ApiModelProperty(
             value = "Additional hadoop configuration properties",
             dataType = "List",
@@ -77,6 +81,7 @@ public class ClusterConfig {
             hidden = true)
     private Map<String, String> hadoopConfigMap = new HashMap<>();
 
+    // yarn application id
     @ApiModelProperty(
             value = "YARN application ID",
             dataType = "String",

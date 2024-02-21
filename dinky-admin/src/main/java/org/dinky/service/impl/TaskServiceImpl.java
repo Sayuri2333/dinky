@@ -172,20 +172,24 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
 
     @ProcessStep(type = ProcessStepType.SUBMIT_PRECHECK)
     public TaskDTO prepareTask(TaskSubmitDto submitDto) {
+        // 根据task的DTO获取task对象，基本上等于Task对象，额外包括了集群名称、状态、报警组等信息
         TaskDTO task = this.getTaskInfoById(submitDto.getId());
 
         log.info("Start check and config task, task:{}", task.getName());
-
+        // 检查是否为空
         DinkyAssert.check(task);
 
+        // 如果有给出savepoint的路径，说明是想从指定savepoint恢复的，修改恢复策略为custom
         if (StringUtils.isNotBlank(submitDto.getSavePointPath())) {
             task.setSavePointStrategy(SavePointStrategy.CUSTOM.getValue());
             task.setSavePointPath(submitDto.getSavePointPath());
         }
+        // 自定义配置也设置下
         task.setVariables(Optional.ofNullable(submitDto.getVariables()).orElse(new HashMap<>()));
         return task;
     }
 
+    // 现在这个任务到了执行的阶段
     @ProcessStep(type = ProcessStepType.SUBMIT_EXECUTE)
     public JobResult executeJob(TaskDTO task) throws Exception {
         JobResult jobResult = BaseTask.getTask(task).execute();
@@ -205,29 +209,41 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
         return jobResult;
     }
 
+    // 调用executeJob的时候会使用BaseTask执行任务，其中有代码会调用这个方法，根据任务来创建job的配置
     @Override
+    // 推进一步
     @ProcessStep(type = ProcessStepType.SUBMIT_BUILD_CONFIG)
     public JobConfig buildJobSubmitConfig(TaskDTO task) {
         if (Asserts.isNull(task.getType())) {
+            // 默认local
             task.setType(GatewayType.LOCAL.getLongValue());
         }
+        // 拼接上环境对应的sql
         task.setStatement(buildEnvSql(task) + task.getStatement());
+        // 获得job的配置
         JobConfig config = task.getJobConfig();
+        // 基于savepoint策略的配置来获取这个task关联的Savepoint对象
         Savepoints savepoints = savepointsService.getSavePointWithStrategy(task);
+        // 如果savepoint策略不是custom的话，config中是没有savepoint的路径的，根据task找到savepoint之后更新一下savepoint的路径
         if (Asserts.isNotNull(savepoints)) {
             log.info("Init savePoint");
             config.setSavePointPath(savepoints.getPath());
+            // 简单粗暴配置flink运行时参数
             config.getConfigJson().put("execution.savepoint.path", savepoints.getPath()); // todo: 写工具类处理相关配置
         }
+        // 根据Gateway类型判断，如果是需要预先起远程集群的
         if (GatewayType.get(task.getType()).isDeployCluster()) {
             log.info("Init gateway config, type:{}", task.getType());
+            // 根据集群ID从数据库中获取一下集群配置
             FlinkClusterConfig flinkClusterCfg =
                     clusterCfgService.getFlinkClusterCfg(config.getClusterConfigurationId());
             flinkClusterCfg.getAppConfig().setUserJarParas(buildParams(config.getTaskId()));
             flinkClusterCfg.getAppConfig().setUserJarMainAppClass(CommonConstant.DINKY_APP_MAIN_CLASS);
+            // 看不懂，后面看起来都是配置
             config.buildGatewayConfig(flinkClusterCfg);
             config.setClusterId(null);
         } else if (GatewayType.LOCAL.equalsValue(task.getType())) {
+            // 如果是local集群的话集群id就不要写了
             config.setClusterId(null);
             config.setClusterConfigurationId(null);
         } else {
@@ -281,10 +297,13 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
         return config;
     }
 
+    // 根据task的配置写一段环境配置的sql
     @Override
     public String buildEnvSql(AbstractStatementDTO task) {
         log.info("Start initialize FlinkSQLEnv:");
+        // 另起一行
         String sql = CommonConstant.LineSep;
+        // 先不管这个fragment的问题
         if (task.getFragment()) {
             String flinkWithSql = dataBaseService.getEnabledFlinkWithSql();
             if (Asserts.isNotNullString(flinkWithSql)) {
@@ -296,9 +315,12 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
             variables.putAll(Optional.ofNullable(task.getVariables()).orElse(new HashMap<>()));
             task.setVariables(variables);
         }
+        // 拿到env id
         int envId = Optional.ofNullable(task.getEnvId()).orElse(-1);
         if (envId > 0) {
+            // 这个尼玛的env id其实是关联了一个自己的env task，我真服了
             TaskDTO envTask = this.getTaskInfoById(task.getEnvId());
+            // 把这个env task的statement内容拼接一下
             if (Asserts.isNotNull(envTask) && Asserts.isNotNullString(envTask.getStatement())) {
                 sql += envTask.getStatement() + CommonConstant.LineSep;
             }
@@ -309,18 +331,23 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
         return sql;
     }
 
+    // 提交任务
     @Override
     public JobResult submitTask(TaskSubmitDto submitDto) throws Exception {
         // 注解自调用会失效，这里通过获取对象方法绕过此限制
+        // 先prepare一下这个任务。根据本次提交的DTO配置下TaskDTO对象
         TaskServiceImpl taskServiceBean = applicationContext.getBean(TaskServiceImpl.class);
         TaskDTO taskDTO = taskServiceBean.prepareTask(submitDto);
         // The statement set is enabled by default when submitting assignments
+        // 默认开启statement set
         taskDTO.setStatementSet(true);
+        // 执行任务，获取job的结果
         JobResult jobResult = taskServiceBean.executeJob(taskDTO);
         if ((jobResult.getStatus() == Job.JobStatus.FAILED)) {
             throw new RuntimeException(jobResult.getError());
         }
         log.info("Job Submit success");
+        // 因为任务绑定了一个新的job，需要更新一下绑定关系，写入到数据库中
         Task task = new Task(submitDto.getId(), jobResult.getJobInstanceId());
         if (!this.updateById(task)) {
             throw new BusException(Status.TASK_UPDATE_FAILED.getMessage());
@@ -515,34 +542,46 @@ public class TaskServiceImpl extends SuperServiceImpl<TaskMapper, Task> implemen
 
     @Override
     public TaskDTO getTaskInfoById(Integer id) {
+        // 根据Task id获取task对象
         Task mTask = this.getById(id);
         DinkyAssert.check(mTask);
+        // 复制值到DTO里面
         TaskDTO taskDTO = new TaskDTO();
         BeanUtil.copyProperties(mTask, taskDTO);
 
+        // 如果集群id不为空
         if (taskDTO.getClusterId() != null) {
+            // 查一下集群
             ClusterInstance clusterInstance = clusterInstanceService.getById(taskDTO.getClusterId());
             if (clusterInstance != null) {
+                // 设置下集群名称
                 taskDTO.setClusterName(clusterInstance.getAlias());
             }
         }
+        // 如果这个任务有上一次关联的job信息
         if (taskDTO.getJobInstanceId() != null) {
             JobInstance jobInstance = jobInstanceService.getById(taskDTO.getJobInstanceId());
             if (jobInstance != null) {
+                // 设置下status
                 taskDTO.setStatus(jobInstance.getStatus());
             }
         }
         if (!Asserts.isNull(taskDTO.getAlertGroupId())) {
+            // 报警组也配置下
             AlertGroup alertGroup = alertGroupService.getAlertGroupInfo(taskDTO.getAlertGroupId());
             taskDTO.setAlertGroup(alertGroup);
         }
+        // 然后返回
         return taskDTO;
     }
 
     @Override
+    // 使用任务的id初始化租户信息
     public void initTenantByTaskId(Integer id) {
+        // 查询任务绑定的租户id
         Integer tenantId = baseMapper.getTenantByTaskId(id);
         Asserts.checkNull(tenantId, Status.TASK_NOT_EXIST.getMessage());
+        // 将任务的租户设置为当前租户
         TenantContextHolder.set(tenantId);
         log.info("Init task tenan finished..");
     }

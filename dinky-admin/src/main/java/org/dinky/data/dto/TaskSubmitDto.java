@@ -25,15 +25,20 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Builder;
 import lombok.Data;
 
+// 提供的task id能够定位任务的大部分信息，但是每个任务在每次提交时配置的savepoint路径、自定义参数以及是否上线等可能不同，所以额外再提供一下
 @Data
 @Builder
 public class TaskSubmitDto {
     public TaskSubmitDto() {}
 
     public TaskSubmitDto(Integer id, Boolean isOnline, String savePointPath, Map<String, String> variables) {
+        // 任务id
         this.id = id;
+        // 是否上线的任务
         this.isOnline = isOnline;
+        // savepoint的路径
         this.savePointPath = savePointPath;
+        // k-v结构的变量表
         this.variables = variables;
     }
 

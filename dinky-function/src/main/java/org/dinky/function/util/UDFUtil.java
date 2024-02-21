@@ -154,6 +154,7 @@ public class UDFUtil {
     }
 
     public static String[] initJavaUDF(List<UDF> udf, GatewayType gatewayType, Integer missionId) {
+        // 筛选出所有Java的UDF，根据代码对其进行编译打包，返回打包后的UDF JAR PATH
         return FunctionFactory.initUDF(
                         CollUtil.newArrayList(
                                 CollUtil.filterNew(udf, x -> x.getFunctionLanguage() != FunctionLanguage.PYTHON)),
@@ -303,36 +304,42 @@ public class UDFUtil {
         return !StrUtil.isBlank(statement) && CollUtil.isNotEmpty(ReUtil.findAll(pattern, statement, 0));
     }
 
+    // UDF函数例子：CREATE TEMPORARY FUNCTION EmployeeIdGenerator AS 'com.byd.flink.sql.udf.EmployeeIdGenerator';
     public static UDF toUDF(String statement, DinkyClassLoader classLoader) {
-        if (isUdfStatement(PATTERN, statement)) {
+        if (isUdfStatement(PATTERN, statement)) { // 判断是不是属于创建UDF的语句
+            // getAllGroups 方法用于从给定的字符串中提取所有匹配正则表达式的组（group）。在正则表达式中，括号()用于定义组。
+            // removeEmpty 方法用于从一个集合（在这种情况下是列表）中移除所有空元素（null 或空字符串""）。
             List<String> groups = CollUtil.removeEmpty(ReUtil.getAllGroups(PATTERN, statement));
-            String udfName = groups.get(1);
-            String className = groups.get(2);
+            String udfName = groups.get(1); // udf名称，如上述EmployeeIdGenerator
+            String className = groups.get(2); // udf类名，如上述com.byd.flink.sql.udf.EmployeeIdGenerator
 
             if (groups.size() > 3) {
+                // 如果大于3，说明有用using jar语法
                 // if statement contains using jar, using these jars, not to lookup ClassLoaderUtil
                 // pool
                 return null;
             }
 
             FlinkUdfPathContextHolder udfPathContextHolder = classLoader.getUdfPathContextHolder();
-            if (ClassLoaderUtil.isPresent(className)) {
+            if (ClassLoaderUtil.isPresent(className)) { // 判断这个类是否已经在类路径中存在
+                // 如果存在就加载以下，把包路径添加到当前线程的UDFPath中
                 // 获取已经加载在java的类，对应的包路径
                 try {
                     udfPathContextHolder.addUdfPath(FileUtil.file(classLoader
                             .loadClass(className)
                             .getProtectionDomain()
                             .getCodeSource()
-                            .getLocation()
+                            .getLocation() // 获取包含这个类的文件的路径
                             .getPath()));
                 } catch (ClassNotFoundException e) {
                     throw new DinkyException(e);
                 }
                 return null;
             }
-
+            // UdfCodePool是一个线程公用的池，在系统初始化时会查询所有UDF作业并将其加入到这个池里
             UDF udf = UdfCodePool.getUDF(className);
             if (udf != null) {
+                // 返回找到的UDF
                 return UDF.builder()
                         .name(udfName)
                         .className(className)
@@ -452,6 +459,7 @@ public class UDFUtil {
     }
 
     public static void addConfigurationClsAndJars(
+            // 把这些jars跟plugins拉进去conf里
             CustomTableEnvironment customTableEnvironment, List<URL> jarList, List<URL> classpaths) {
         customTableEnvironment.addConfiguration(
                 PipelineOptions.CLASSPATHS,

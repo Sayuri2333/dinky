@@ -58,6 +58,20 @@ public class DinkyClassLoader extends URLClassLoader {
     }
 
     public DinkyClassLoader(URL[] urls, ClassLoader parent, URLStreamHandlerFactory factory) {
+        // 调用父类的构造函数
+        //URL[] urls:
+        // 这个参数是一个URL数组，每个URL指向一个要加载类和资源的位置。这些位置通常是JAR文件或目录，也可以是其他任何可通过URL访问的资源。
+        // URLClassLoader将从这些URL指定的位置加载类和资源。
+
+        //ClassLoader parent:
+        // 这个参数是一个父类加载器。在Java中，类加载器有一个层级关系，每个类加载器除了根类加载器外都有一个父类加载器。
+        // 当URLClassLoader无法加载某个类时，它会委托给这个父类加载器尝试加载该类。
+        // 这是Java类加载机制中的“双亲委派模型”，用于确保Java核心库的类优先于应用程序定义的类加载，并维护Java运行时环境的安全性和完整性。
+
+        //URLStreamHandlerFactory factory:
+        // 这个参数是一个用于创建URL流处理器的工厂。URL流处理器用于处理特定协议的URL连接（例如，HTTP、HTTPS、FTP）。
+        // 如果提供了这个参数，URLClassLoader将使用这个工厂来创建URL流处理器，以便打开和处理URL指向的资源。
+        // 这个参数通常用于处理特殊的URL协议，或者在需要自定义URL处理逻辑时使用。
         super(urls, parent, factory);
     }
 
@@ -90,6 +104,7 @@ public class DinkyClassLoader extends URLClassLoader {
         addURLs(urls);
     }
 
+    // 把File对象转换成URL
     private static URL[] convertFilesToUrls(Collection<File> fileSet) {
         return fileSet.stream()
                 .map(x -> {

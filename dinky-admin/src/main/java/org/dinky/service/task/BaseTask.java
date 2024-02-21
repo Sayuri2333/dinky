@@ -40,6 +40,7 @@ import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.ReflectUtil;
 import lombok.AllArgsConstructor;
 
+// 生成一个构造函数public BaseTask(TaskDTO task)，results字段由于是静态的不会生成
 @AllArgsConstructor
 public abstract class BaseTask {
 
@@ -62,7 +63,11 @@ public abstract class BaseTask {
                 StrFormatter.format("task [{}] dialect [{}] is can not getJobPlan", task.getName(), task.getDialect()));
     }
 
+    // 根据TaskDTO获取具体的Task实现。通过DTO中的方言与各个task实现注解上配置的方言进行对比来找
     public static BaseTask getTask(TaskDTO taskDTO) {
+        // 用于扫描指定包及其子包中所有继承自特定超类（superclass）或实现特定接口的类
+        // packageName：指定了要扫描的包的名称。方法将会在这个包及其所有子包中查找类
+        // superClass：指定了要查找的类应该继承的超类或实现的接口
         Set<Class<?>> classes =
                 ClassUtil.scanPackageBySuper(BaseTask.class.getPackage().getName(), BaseTask.class);
         for (Class<?> clazz : classes) {
@@ -70,6 +75,7 @@ public abstract class BaseTask {
             if (annotation != null) {
                 for (Dialect dialect : annotation.value()) {
                     if (dialect.isDialect(taskDTO.getDialect())) {
+                        // 使用反射来创建clazz类的实例，传入taskDTO作为构造函数的参数
                         return (BaseTask) ReflectUtil.newInstance(clazz, taskDTO);
                     }
                 }

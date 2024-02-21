@@ -29,17 +29,21 @@ import org.springframework.stereotype.Component;
  *
  * @since 2021/6/29 15:36
  */
-// 用来获取bean的工具
+// 用来获取bean的工具。实现ApplicationContextAware接口使一个Bean意识到ApplicationContext的存在。
+// 实现这个接口的类可以获得一个对ApplicationContext的引用，从而能够访问Spring容器中的其他Bean。
 @Component
 public class SpringContextUtils implements ApplicationContextAware {
 
     public static ApplicationContext applicationContext;
 
     @Override
+    // spring在创建这个Bean时，会调用这个方法，并传入当前的applicationContext实例
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        // 将这个实例初始化为类的成员变量
         SpringContextUtils.applicationContext = applicationContext;
     }
 
+    // 后续就能通过静态方法来获取Bean了
     public static Object getBean(String name) {
         return applicationContext.getBean(name);
     }

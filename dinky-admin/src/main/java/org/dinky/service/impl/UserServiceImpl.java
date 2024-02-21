@@ -183,17 +183,21 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
             // Determine the login method (LDAP or local) based on the flag in loginDTO
             user = loginDTO.isLdapLogin() ? ldapLogin(loginDTO) : localLogin(loginDTO);
         } catch (AuthException e) {
+            // 返回登录错误异常
             // Handle authentication exceptions and return the corresponding error status
             return Result.authorizeFailed(Status.USER_NOT_EXIST, loginDTO.getUsername());
         }
 
+        // 这个时候我们应该已经获取了user，且比对完成了密码正确。现在检查用户是否处于启用状态
         // Check if the user is enabled
         if (!user.getEnabled()) {
             loginLogService.saveLoginLog(user, Status.USER_DISABLED_BY_ADMIN);
             return Result.authorizeFailed(Status.USER_DISABLED_BY_ADMIN);
         }
 
+        // 现在能够判断当前用户是可访问且启用的，基于这个id构建UserDTO
         UserDTO userInfo = refreshUserInfo(user);
+        // 如果没有绑定租户
         if (Asserts.isNullCollection(userInfo.getTenantList())) {
             loginLogService.saveLoginLog(user, Status.USER_NOT_BINDING_TENANT);
             return Result.authorizeFailed(Status.USER_NOT_BINDING_TENANT);
@@ -201,20 +205,27 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
 
         // Perform login using StpUtil (Assuming it handles the session management)
         Integer userId = user.getId();
+        // 使用sa-token完成登录操作
         StpUtil.login(userId, loginDTO.isAutoLogin());
 
         // save login log record
         loginLogService.saveLoginLog(user, Status.LOGIN_SUCCESS);
 
+        // 更新一下记录user-token对应关系的表
         upsertToken(userInfo);
 
         // Return the user information along with a success status
         return Result.succeed(userInfo, Status.LOGIN_SUCCESS);
     }
 
+    /**
+     * 因为重新登录了，所以调用这个方法更新一下记录在数据库中的每个用户的token信息
+     * @param userInfo
+     */
     private void upsertToken(UserDTO userInfo) {
         Integer userId = userInfo.getUser().getId();
         SysToken sysToken = new SysToken();
+        // 先从sa-token中获取当前登录的用户持有的token值
         String tokenValue = StpUtil.getTokenValueByLoginId(userId);
         sysToken.setTokenValue(tokenValue);
         sysToken.setUserId(userId);
@@ -224,6 +235,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         sysToken.setExpireType(3);
         DateTime date = DateUtil.date();
         sysToken.setExpireStartTime(date);
+        // 一天之后才失效
         sysToken.setExpireEndTime(DateUtil.offsetDay(date, 1));
         sysToken.setCreator(userId);
         sysToken.setUpdater(userId);
@@ -231,11 +243,14 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
 
         try {
             lock.lock();
+            // 从数据库中查一下当前token值有没有对应的记录
             SysToken lastSysToken =
                     tokenMapper.selectOne(new LambdaQueryWrapper<SysToken>().eq(SysToken::getTokenValue, tokenValue));
+            // 如果没有的话就插入当前token值
             if (Asserts.isNull(lastSysToken)) {
                 tokenMapper.insert(sysToken);
             } else {
+                // 如果有的话估计是重复登录了，刷新一下日期字段相关的数据
                 sysToken.setId(lastSysToken.getId());
                 tokenMapper.updateById(sysToken);
             }
@@ -249,9 +264,11 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
     // 本地登录
     private User localLogin(LoginDTO loginDTO) throws AuthException {
 
+        // 从数据库中获取用户信息
         // Get user from local database by username
         User user = getUserByUsername(loginDTO.getUsername());
         if (Asserts.isNull(user)) {
+            // 没有这个用户就返回一个认证错误
             // User doesn't exist
             throw new AuthException(Status.USER_NOT_EXIST, loginDTO.getUsername());
         }
@@ -259,10 +276,12 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         String userPassword = user.getPassword();
         // Check if the provided password is null
         if (Asserts.isNullString(loginDTO.getPassword())) {
+            // 如果提供的密码为空，存一下日志，然后返回错误。使用loginLogService中的方法
             loginLogService.saveLoginLog(user, Status.LOGIN_PASSWORD_NOT_NULL);
             throw new AuthException(Status.LOGIN_PASSWORD_NOT_NULL);
         }
 
+        // 比较一下密码对不对。数据库中存放的是md5的值，防止泄密
         // Compare the hashed form of the provided password with the stored password
         if (Asserts.isEquals(SaSecureUtil.md5(loginDTO.getPassword()), userPassword)) {
             return user;
@@ -317,14 +336,25 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         return userFromLocal;
     }
 
+    /**
+     * 刷新UserDTO信息。基于给定的user对象创建DTO，并更新到UserInfoContextHolder的缓存中
+     * @param user
+     * @return
+     */
     private UserDTO refreshUserInfo(User user) {
         UserDTO reBuildUserInfo = buildUserInfo(user.getId());
         UserInfoContextHolder.set(user.getId(), reBuildUserInfo);
         return reBuildUserInfo;
     }
 
+    /**
+     * 通过用户名从数据库中获取用户信息
+     * @param username username
+     * @return
+     */
     @Override
     public User getUserByUsername(String username) {
+        // 这个Service继承了mb-plus的IService，可以通过LambdaQuery的方式查询数据库
         return getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
     }
 
@@ -351,12 +381,19 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         }
     }
 
+    /**
+     * 换租户
+     * @param tenantId
+     * @return
+     */
     @Override
     public Result<Tenant> chooseTenant(Integer tenantId) {
+        // 根据id获取租户pojo
         Tenant currentTenant = tenantService.getById(tenantId);
         if (Asserts.isNull(currentTenant)) {
             return Result.failed(Status.GET_TENANT_FAILED);
         } else {
+            // 更新一下ContextHolder中的UserDTO以及租户id
             UserDTO userInfo = UserInfoContextHolder.get(StpUtil.getLoginIdAsInt());
             userInfo.setCurrentTenant(currentTenant);
             UserInfoContextHolder.refresh(StpUtil.getLoginIdAsInt(), userInfo);
@@ -366,15 +403,23 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         }
     }
 
+    /**
+     * 获取当前用户的userDTO
+     * @return
+     */
     @Override
     public Result<UserDTO> queryCurrentUserInfo() {
+        // StpUtil.getLoginIdAsInt()获取userId，然后查ContextHolder里面的缓存
         UserDTO userInfo = UserInfoContextHolder.get(StpUtil.getLoginIdAsInt());
 
         if (Asserts.isNotNull(userInfo)) {
+            // 怕缓存有失效的可能？就拿这个id再去数据库查一次
             UserDTO userInfoDto = buildUserInfo(userInfo.getUser().getId());
             if (userInfoDto != null) {
+                // 数据库中并不会带出来current tenant的信息，需要用Holder中的值更新一下当前租户
                 userInfoDto.setCurrentTenant(userInfo.getCurrentTenant());
             }
+            // 刷新一下ContextHolder。我猜这个业务场景是可能会在切换租户时调用这个方法，用来更新ContextHolder中的缓存，与实际情况保持一致
             UserInfoContextHolder.refresh(StpUtil.getLoginIdAsInt(), userInfoDto);
             return Result.succeed(userInfoDto);
         } else {
@@ -442,6 +487,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
 
     @Override
     public void outLogin() {
+        // 登出直接用sa-token来logout。这个StpUtil能获取当前线程的登录id
         StpUtil.logout(StpUtil.getLoginIdAsInt());
     }
 
@@ -532,12 +578,14 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
 
     /**
      * build user info
+     * 基于给定的userId构建UserDTO
      *
      * @param userId
      * @return
      */
     public UserDTO buildUserInfo(Integer userId) {
 
+        // 使用mb-plus的方法从数据库获取用户
         User user = getById(userId);
         if (Asserts.isNull(user)) {
             return null;
@@ -547,16 +595,20 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
         List<Tenant> tenantList = new LinkedList<>();
         List<Menu> menuList = new LinkedList<>();
 
+        // 分别获取用户的角色与权限信息
         List<UserRole> userRoles = userRoleService.getUserRoleByUserId(user.getId());
         List<UserTenant> userTenants = userTenantService.getUserTenantByUserId(user.getId());
 
         userRoles.forEach(userRole -> {
+            // 获取角色信息
             Role role = roleService.getBaseMapper().selectById(userRole.getRoleId());
-            if (Asserts.isNotNull(role)) {
-                roleList.add(role);
+            if (Asserts.isNotNull(role)) { //如果不为空
+                roleList.add(role); // 加入角色列表
                 // query role menu
+                // 查询角色能够访问的菜单信息
                 List<RoleMenu> roleMenus =
                         roleMenuService.list(new LambdaQueryWrapper<RoleMenu>().eq(RoleMenu::getRoleId, role.getId()));
+                // 把菜单加入菜单列表
                 roleMenus.forEach(roleMenu -> {
                     Menu menu = menuService.getById(roleMenu.getMenuId());
                     if (Asserts.isNotNull(menu) && !StrUtil.equals("M", menu.getType())) {
@@ -566,6 +618,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
             }
         });
 
+        // 构建租户列表
         userTenants.forEach(userTenant -> {
             Tenant tenant = tenantService.getById(userTenant.getTenantId());
             if (Asserts.isNotNull(tenant)) {
@@ -573,6 +626,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
             }
         });
 
+        // 构建DTO，包含用户信息，以及其拥有的所有角色、菜单、租户的信息
         UserDTO userInfo = new UserDTO();
         userInfo.setUser(user);
         userInfo.setRoleList(roleList);

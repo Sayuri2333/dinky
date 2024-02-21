@@ -34,13 +34,18 @@ import cn.hutool.core.io.FileUtil;
 
 public class DinkyClassLoaderUtil {
 
+    // 初始化Dinky的ClassLoader
     public static void initClassLoader(JobConfig config, DinkyClassLoader dinkyClassLoader) {
 
         FlinkUdfPathContextHolder udfPathContextHolder = dinkyClassLoader.getUdfPathContextHolder();
+        // 从JobConfig中的自定义json配置中获取
         if (CollUtil.isNotEmpty(config.getConfigJson())) {
+            // 指定包含作业所需类和资源的 JAR 文件的路径
             String pipelineJars = config.getConfigJson().get(PipelineOptions.JARS.key());
+            // 指定一个目录或远程位置，指向包含作业所需资源的目录或 JAR 文件。
             String classpaths = config.getConfigJson().get(PipelineOptions.CLASSPATHS.key());
             // add custom jar path
+            // 把自定义的jar path添加到UDFContextHolder里
             if (Asserts.isNotNullString(pipelineJars)) {
                 String[] paths = pipelineJars.split(",");
                 for (String path : paths) {
@@ -63,7 +68,7 @@ public class DinkyClassLoaderUtil {
                 }
             }
         }
-
+        // 把两个地方的File文件合并起来传给dinkyClassLoader
         dinkyClassLoader.addURLs(
                 CollUtil.addAll(udfPathContextHolder.getUdfFile(), udfPathContextHolder.getOtherPluginsFiles()));
     }

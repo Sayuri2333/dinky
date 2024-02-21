@@ -73,6 +73,7 @@ public class APIController {
         return Result.succeed(DinkyVersion.getVersion(), "Get success");
     }
 
+    // 提交一个任务。这个任务已经写入到数据库中了。
     @PostMapping("/submitTask")
     @ApiOperation("Submit Task")
     //    @Log(title = "Submit Task", businessType = BusinessType.SUBMIT)

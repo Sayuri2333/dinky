@@ -26,6 +26,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
  * RemoteBatchExecutor
+ * 远程的批的执行器
  *
  * @since 2022/2/7 22:10
  */
@@ -33,19 +34,24 @@ public class RemoteBatchExecutor extends Executor {
 
     public RemoteBatchExecutor(ExecutorConfig executorConfig, DinkyClassLoader classLoader) {
         this.executorConfig = executorConfig;
-        if (executorConfig.isValidConfig()) {
+        if (executorConfig.isValidConfig()) { // 如果flink配置不为空
+            // 从Map中读取flink的配置
             Configuration configuration = Configuration.fromMap(executorConfig.getConfig());
+            // 创建Flink执行环境，把配置以及额外的jar的路径也传进去
             this.environment = StreamExecutionEnvironment.createRemoteEnvironment(
                     executorConfig.getHost(), executorConfig.getPort(), configuration, executorConfig.getJarFiles());
-        } else {
+        } else { // 如果配置为空就创建默认的
             this.environment = StreamExecutionEnvironment.createRemoteEnvironment(
                     executorConfig.getHost(), executorConfig.getPort(), executorConfig.getJarFiles());
         }
+        // 初始化类加载器
         init(classLoader);
     }
 
+    // 返回一个自定义的Table sql的执行环境
     @Override
     CustomTableEnvironment createCustomTableEnvironment(ClassLoader classLoader) {
+        // 创建批模式的环境
         return CustomTableEnvironmentImpl.createBatch(environment, classLoader);
     }
 }

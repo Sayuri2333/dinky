@@ -47,6 +47,7 @@ public class FlinkSqlEnvTask extends BaseTask {
     public FlinkSqlEnvTask(TaskDTO task) {
         super(task);
         // Default run mode is local.
+        // 如果DTO中没有type信息那就用LOCAL模式运行
         if (Asserts.isNull(task.getType())) {
             task.setType(GatewayType.LOCAL.getLongValue());
         }
@@ -71,6 +72,7 @@ public class FlinkSqlEnvTask extends BaseTask {
 
     protected JobManager getJobManager() {
         TaskService taskService = SpringUtil.getBean(TaskServiceImpl.class);
+        //
         return JobManager.build(taskService.buildJobSubmitConfig(task));
     }
 }

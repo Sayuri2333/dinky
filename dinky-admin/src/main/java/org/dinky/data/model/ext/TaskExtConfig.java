@@ -41,6 +41,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @ApiModel(value = "TaskExtConfig", description = "Extended Configuration for Task")
+// 存储自定义配置的集合类
 public class TaskExtConfig implements Serializable {
 
     @ApiModelProperty(

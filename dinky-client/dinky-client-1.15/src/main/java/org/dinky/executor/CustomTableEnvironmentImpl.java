@@ -119,9 +119,11 @@ public class CustomTableEnvironmentImpl extends AbstractCustomTableEnvironment {
         return create(executionEnvironment, EnvironmentSettings.newInstance().build(), classLoader);
     }
 
+    // 创建批模式的执行环境
     public static CustomTableEnvironmentImpl createBatch(
             StreamExecutionEnvironment executionEnvironment, ClassLoader classLoader) {
         Configuration configuration = new Configuration();
+        // 设置批模式执行
         configuration.set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.BATCH);
         TableConfig tableConfig = new TableConfig();
         tableConfig.addConfiguration(configuration);
@@ -131,12 +133,14 @@ public class CustomTableEnvironmentImpl extends AbstractCustomTableEnvironment {
                 classLoader);
     }
 
+    // 创建执行环境
     public static CustomTableEnvironmentImpl create(
             StreamExecutionEnvironment executionEnvironment, EnvironmentSettings settings, ClassLoader classLoader) {
 
         // temporary solution until FLINK-15635 is fixed
         //        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
+        // Executor是Flink Table API 的一部分，允许 Flink Table 和 SQL API 能够与不同的执行引擎进行交互，例如 Flink 的批处理和流处理引擎。
         final Executor executor = lookupExecutor(classLoader, executionEnvironment);
 
         final TableConfig tableConfig = TableConfig.getDefault();

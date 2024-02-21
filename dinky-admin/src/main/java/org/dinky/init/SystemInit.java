@@ -219,6 +219,7 @@ public class SystemInit implements ApplicationRunner {
         return project;
     }
 
+    // 扫描当前系统下的所有UDF任务，注册到UdfCodePool里面
     public void registerUDF() {
         List<Task> allUDF = taskService.getReleaseUDF();
         if (CollUtil.isNotEmpty(allUDF)) {

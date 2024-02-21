@@ -26,8 +26,11 @@ import java.util.Set;
 /** @since 0.7.0 */
 public class FlinkUdfPathContextHolder {
 
+    // UDF路径
     private final Set<File> UDF_PATH_CONTEXT = new HashSet<>();
+    // 其他插件路径
     private final Set<File> OTHER_PLUGINS_PATH_CONTEXT = new HashSet<>();
+    // Python UDF路径
     private final Set<File> PYTHON_UDF_FILE = new HashSet<>();
 
     public void addUdfPath(File file) {

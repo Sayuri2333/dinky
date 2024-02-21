@@ -93,6 +93,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cn.hutool.core.text.StrFormatter;
 import lombok.extern.slf4j.Slf4j;
 
+// dinky jobManager实例类
 @Slf4j
 public class JobManager {
     private JobHandler handler;
@@ -107,6 +108,7 @@ public class JobManager {
 
     private JobParam jobParam = null;
     private String currentSql = "";
+    // 内置一个Dinky自定义的类加载器
     private final WeakReference<DinkyClassLoader> dinkyClassLoader = new WeakReference<>(DinkyClassLoader.build());
     private Job job;
 
@@ -189,7 +191,9 @@ public class JobManager {
     }
 
     public static JobManager build(JobConfig config) {
+        // 新建manager
         JobManager manager = new JobManager(config);
+        // 初始化jobManager
         manager.init();
         return manager;
     }
@@ -202,9 +206,12 @@ public class JobManager {
         return manager;
     }
 
+    // 初始化方法
     public void init() {
+        // 如果不是planMode，也就是说需要实际执行的话
         if (!isPlanMode) {
             runMode = GatewayType.get(config.getType());
+            // useGateway字段判断是否需要dinky自建集群，比如pre-job或者application模式
             useGateway = GatewayType.isDeployCluster(config.getType());
             handler = JobHandler.build();
         }
@@ -212,6 +219,7 @@ public class JobManager {
         useRestAPI = SystemConfiguration.getInstances().isUseRestAPI();
         executorConfig = config.getExecutorSetting();
         executorConfig.setPlan(isPlanMode);
+        // 使用工厂方法创建一个执行器。
         executor = ExecutorFactory.buildExecutor(executorConfig, getDinkyClassLoader());
     }
 
@@ -320,15 +328,18 @@ public class JobManager {
         return job.getJobResult();
     }
 
+    // 推进到执行SQL阶段
     @ProcessStep(type = ProcessStepType.SUBMIT_EXECUTE)
     public JobResult executeSql(String statement) throws Exception {
         job = Job.build(runMode, config, executorConfig, executor, statement, useGateway);
+        // 开始时向历史记录表中写入一下
         ready();
-
+        // 初始化ClassLoadder，主要是将config中配置的额外的jar包的URL加入ClassLoader中
         DinkyClassLoaderUtil.initClassLoader(config, getDinkyClassLoader());
         jobParam =
                 Explainer.build(executor, useStatementSet, this).pretreatStatements(SqlUtil.getStatements(statement));
         try {
+            // 分步执行
             // step 1: init udf
             JobUDFBuilder.build(this).run();
             // step 2: execute ddl

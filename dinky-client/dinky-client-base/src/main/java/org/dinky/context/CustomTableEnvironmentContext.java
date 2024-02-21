@@ -23,7 +23,7 @@ import org.dinky.executor.CustomTableEnvironment;
 
 /** CustomTableEnvironmentContext */
 public class CustomTableEnvironmentContext {
-
+    // 配置当前线程指定的自定义Table执行环境
     private static final ThreadLocal<CustomTableEnvironment> CUSTOM_TABLE_ENVIRONMENT_CONTEXT = new ThreadLocal<>();
 
     public static void set(CustomTableEnvironment value) {

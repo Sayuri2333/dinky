@@ -38,17 +38,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import cn.hutool.extra.spring.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
 
+// flink sql任务
 @Slf4j
 @SupportDialect(Dialect.FLINK_SQL)
 public class FlinkSqlTask extends BaseTask {
     protected final JobManager jobManager;
 
     public FlinkSqlTask(TaskDTO task) {
+        // 将this.task指向传入的TaskDTO
         super(task);
         // Default run mode is local.
         if (Asserts.isNull(task.getType())) {
             task.setType(GatewayType.LOCAL.getLongValue());
         }
+        // 初始化jobManager
         this.jobManager = getJobManager();
     }
 
@@ -68,7 +71,9 @@ public class FlinkSqlTask extends BaseTask {
         return jobManager.executeSql(task.getStatement());
     }
 
+    // 获得提交Flink任务需要的JobManager
     protected JobManager getJobManager() {
+        // 获得TaskService，使用其buildJobSubmitConfig基于task配置创建作业配置
         TaskService taskService = SpringUtil.getBean(TaskServiceImpl.class);
         return JobManager.build(taskService.buildJobSubmitConfig(task));
     }

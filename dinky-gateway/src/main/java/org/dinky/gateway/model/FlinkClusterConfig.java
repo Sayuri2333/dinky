@@ -38,6 +38,7 @@ import lombok.Setter;
 @ApiModel(value = "FlinkClusterConfig", description = "Configuration for a Flink cluster")
 public class FlinkClusterConfig {
 
+    // 集群类型
     @ApiModelProperty(
             value = "Gateway Type",
             dataType = "GatewayType",
@@ -45,6 +46,7 @@ public class FlinkClusterConfig {
             notes = "The type of gateway for the Flink cluster")
     private GatewayType type;
 
+    // 跟flink集群相关的一些配置（hadoop，flink-conf，flink-lib路径等）
     @ApiModelProperty(
             value = "Cluster Configuration",
             dataType = "ClusterConfig",

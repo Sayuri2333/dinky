@@ -227,12 +227,14 @@ public class TaskDTO extends AbstractStatementDTO {
     private Integer maxRowNum = 100;
 
     public JobConfig getJobConfig() {
-
+        // 如果这个任务有自定义的配置的话就读取它
         Map<String, String> parsedConfig =
                 this.configJson == null ? new HashMap<>(0) : this.configJson.getCustomConfigMaps();
 
+        // 把Job需要的config从当前类中copy下
         JobConfig jobConfig = new JobConfig();
         BeanUtil.copyProperties(this, jobConfig);
+        // 加入自定义的配置
         jobConfig.setConfigJson(parsedConfig);
         jobConfig.setTaskId(id);
         jobConfig.setJobName(name);

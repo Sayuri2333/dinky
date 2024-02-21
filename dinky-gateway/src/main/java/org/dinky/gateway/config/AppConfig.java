@@ -28,10 +28,12 @@ import lombok.Data;
  *
  * @since 2021/11/3 21:55
  */
+// 估计是在flink jar执行的时候用的
 @Data
 @ApiModel(value = "AppConfig", description = "Configuration for the Flink application")
 public class AppConfig {
 
+    // 额外用的jar包的路径
     @ApiModelProperty(
             value = "Path to user JAR file",
             dataType = "String",
@@ -39,6 +41,7 @@ public class AppConfig {
             notes = "Path to the user's application JAR file")
     private String userJarPath;
 
+    // 额外用的jar包的参数
     @ApiModelProperty(
             value = "User JAR file parameters",
             dataType = "String[]",
@@ -46,6 +49,7 @@ public class AppConfig {
             notes = "Parameters to be passed to the user's application JAR file")
     private String[] userJarParas;
 
+    // 哪个是主类
     @ApiModelProperty(
             value = "Main application class in the JAR file",
             dataType = "String",

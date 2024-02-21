@@ -49,9 +49,11 @@ public class Task extends SuperEntity<Task> {
 
     private static final long serialVersionUID = 5988972129893667154L;
 
+    // 方言
     @ApiModelProperty(value = "Dialect", dataType = "String", notes = "Dialect for the task")
     private String dialect;
 
+    // 与任务绑定的租户id。任务是租户隔离的
     @ApiModelProperty(
             value = "Tenant ID",
             dataType = "Integer",
@@ -59,21 +61,27 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the tenant associated with the task")
     private Integer tenantId;
 
+    // 任务类型
     @ApiModelProperty(value = "Type", dataType = "String", notes = "Type of the task")
     private String type;
 
+    // 检查点
     @ApiModelProperty(value = "Check Point", dataType = "Integer", example = "1", notes = "Check point for the task")
     private Integer checkPoint;
 
+    // 保存点策略
     @ApiModelProperty(value = "Save point strategy", dataType = "SavePointStrategy", notes = "Save point strategy")
     private Integer savePointStrategy;
 
+    // 保存点路径
     @ApiModelProperty(value = "Save Point Path", dataType = "String", notes = "Save point path for the task")
     private String savePointPath;
 
+    // 并行度
     @ApiModelProperty(value = "Parallelism", dataType = "Integer", example = "4", notes = "Parallelism for the task")
     private Integer parallelism;
 
+    // 这个是啥
     @ApiModelProperty(
             value = "Fragment",
             dataType = "Boolean",
@@ -88,6 +96,7 @@ public class Task extends SuperEntity<Task> {
             notes = "Statement set option for the task")
     private Boolean statementSet;
 
+    // 是否批模式
     @ApiModelProperty(
             value = "Batch Model",
             dataType = "Boolean",
@@ -95,6 +104,7 @@ public class Task extends SuperEntity<Task> {
             notes = "Batch model option for the task")
     private Boolean batchModel;
 
+    // 集群id，估计用来关联集群表
     @ApiModelProperty(
             value = "ClusterInstance ID",
             dataType = "Integer",
@@ -102,6 +112,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the cluster associated with the task")
     private Integer clusterId;
 
+    // 集群配置id
     @ApiModelProperty(
             value = "Cluster Configuration ID",
             dataType = "Integer",
@@ -109,6 +120,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the cluster configuration associated with the task")
     private Integer clusterConfigurationId;
 
+    // 数据库id
     @ApiModelProperty(
             value = "Database ID",
             dataType = "Integer",
@@ -116,6 +128,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the database associated with the task")
     private Integer databaseId;
 
+    // 环境id
     @ApiModelProperty(
             value = "Environment ID",
             dataType = "Integer",
@@ -123,6 +136,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the environment associated with the task")
     private Integer envId;
 
+    // 报警组id
     @ApiModelProperty(
             value = "Alert Group ID",
             dataType = "Integer",
@@ -134,15 +148,18 @@ public class Task extends SuperEntity<Task> {
             value = "Configuration JSON",
             dataType = "TaskExtConfig",
             notes = "Extended configuration in JSON format for the task")
+    // 使用TableField注解指定处理当前字段的TypeHandler，实现将varchar转换成TaskExtConfig的功能
     @TableField(typeHandler = JSONObjectHandler.class, jdbcType = JdbcType.VARCHAR)
     private TaskExtConfig configJson;
 
     @ApiModelProperty(value = "Note", dataType = "String", notes = "Additional notes for the task")
     private String note;
 
+    // 任务的步数
     @ApiModelProperty(value = "Step", dataType = "Integer", example = "1", notes = "Step for the task")
     private Integer step;
 
+    // 跟任务关联的job实例id
     @ApiModelProperty(
             value = "Job Instance ID",
             dataType = "Integer",
@@ -150,6 +167,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the job instance associated with the task")
     private Integer jobInstanceId;
 
+    // 任务版本id
     @ApiModelProperty(
             value = "Version ID",
             dataType = "Integer",
@@ -157,6 +175,7 @@ public class Task extends SuperEntity<Task> {
             notes = "ID of the version associated with the task")
     private Integer versionId;
 
+    // sql语句
     @ApiModelProperty(value = "Statement", dataType = "String", notes = "SQL statement for the task")
     private String statement;
 

@@ -69,23 +69,28 @@ public class JobUDFBuilder extends JobBuilder {
             taskId = -RandomUtil.randomInt(0, 1000);
         }
         // 1. Obtain the path of the jar package and inject it into the remote environment
+        // 从UdfPathContextHolder中拿到所有用到的UDF File
         List<File> jarFiles =
                 new ArrayList<>(jobManager.getUdfPathContextHolder().getUdfFile());
 
+        // 其他插件的也拿一下
         Set<File> otherPluginsFiles = jobManager.getUdfPathContextHolder().getOtherPluginsFiles();
         jarFiles.addAll(otherPluginsFiles);
 
+        // 返回打包后的UDF jar。这里的加进来的UDF jar是通过dinky task创建的，不是那种直接use jar引入现成的类型
         List<File> udfJars = Arrays.stream(UDFUtil.initJavaUDF(udfList, runMode, taskId))
                 .map(File::new)
                 .collect(Collectors.toList());
         jarFiles.addAll(udfJars);
 
+        // 去除空值后获取绝对路径
         String[] jarPaths = CollUtil.removeNull(jarFiles).stream()
                 .map(File::getAbsolutePath)
                 .toArray(String[]::new);
 
+        // 如果是session类型提交的话
         if (GATEWAY_TYPE_MAP.get(SESSION).contains(runMode)) {
-            config.setJarFiles(jarPaths);
+            config.setJarFiles(jarPaths); // 在JobConfig的jar files中加上这些要上传的jar
         }
 
         // 2.Compile Python
@@ -113,7 +118,9 @@ public class JobUDFBuilder extends JobBuilder {
         try {
             List<URL> jarList = CollUtil.newArrayList(URLUtils.getURLs(jarFiles));
             // 3.Write the required files for UDF
+            // 写一波log记录UDF元数据
             UDFUtil.writeManifest(taskId, jarList, jobManager.getUdfPathContextHolder());
+            // 在flink conf中加入这些jars
             UDFUtil.addConfigurationClsAndJars(
                     jobManager.getExecutor().getCustomTableEnvironment(),
                     jarList,

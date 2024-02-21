@@ -52,6 +52,8 @@ import org.springframework.context.annotation.DependsOn;
  *
  * @since 2021/6/27 0:04
  */
+// @DependsOn注解用来声明Bean之间的依赖关系，这个场景意思是需要先初始化springContextUtils之后再初始化这个Handler类
+// 但是这个类如不不加入spring容器中应该这个注解不会生效的，只有@Component等注解把它加进去之后才会生效。不知道是不是别的地方用了@Bean把它扔进去了
 @DependsOn("springContextUtils")
 public class Job2MysqlHandler extends AbsJobHandler {
 
@@ -73,6 +75,7 @@ public class Job2MysqlHandler extends AbsJobHandler {
     }
 
     @Override
+    // 在实际执行之前，会调用JobHandler的init方法，其中会向历史表写入job的记录
     public boolean init(Job job) {
         this.job = job;
         History history = new History();

@@ -31,6 +31,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @ApiModel(value = "ConfigItem", description = "User custom config item")
+// 自定义配置类，kv结构
 public class ConfigItem implements Serializable {
     private static final long serialVersionUID = 1L;
 

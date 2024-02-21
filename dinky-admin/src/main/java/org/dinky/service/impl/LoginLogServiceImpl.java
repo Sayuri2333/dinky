@@ -58,6 +58,7 @@ public class LoginLogServiceImpl extends SuperServiceImpl<LoginLogMapper, LoginL
         loginLog.setIp(ip);
         loginLog.setStatus(status);
         loginLog.setMsg(msg);
+        // mb-plus自带的方法，保存或者更新这个实体
         saveOrUpdate(loginLog);
     }
 
@@ -85,6 +86,7 @@ public class LoginLogServiceImpl extends SuperServiceImpl<LoginLogMapper, LoginL
      */
     @Override
     public void saveLoginLog(User user, Status status) {
+        // 构建一个日志
         LoginLog loginLog = new LoginLog();
         loginLog.setUserId(user.getId());
         loginLog.setUsername(user.getUsername());

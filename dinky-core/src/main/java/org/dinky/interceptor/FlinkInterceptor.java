@@ -38,7 +38,7 @@ public class FlinkInterceptor {
 
     public static String pretreatStatement(Executor executor, String statement) {
         statement = SqlUtil.removeNote(statement);
-        if (executor.isUseSqlFragment()) {
+        if (executor.isUseSqlFragment()) { // 如果用了dinky中的全局变量的话，会在这里将全局变量中的值给替换
             statement = executor.getVariableManager().parseVariable(statement);
         }
         return statement.trim();

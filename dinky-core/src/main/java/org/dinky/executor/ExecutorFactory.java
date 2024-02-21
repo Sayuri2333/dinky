@@ -39,6 +39,7 @@ public final class ExecutorFactory {
 
     public static Executor buildExecutor(ExecutorConfig executorConfig, DinkyClassLoader classLoader) {
         if (executorConfig.isRemote()) {
+            // 不是local模式走这个
             return buildRemoteExecutor(executorConfig, classLoader);
         } else {
             return buildLocalExecutor(executorConfig, classLoader);
@@ -63,6 +64,7 @@ public final class ExecutorFactory {
 
     public static Executor buildRemoteExecutor(ExecutorConfig executorConfig, DinkyClassLoader classLoader) {
         if (executorConfig.isUseBatchModel()) {
+            // 是批模式走这个
             return new RemoteBatchExecutor(executorConfig, classLoader);
         } else {
             return new RemoteStreamExecutor(executorConfig, classLoader);
