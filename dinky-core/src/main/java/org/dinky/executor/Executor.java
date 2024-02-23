@@ -151,6 +151,7 @@ public abstract class Executor {
         }
     }
 
+    // TODO 在Executor构建的时候把传入的Flink集群配置加入到Executor的setConfig里面
     protected void init(DinkyClassLoader classLoader) {
         initClassloader(classLoader);
         this.dinkyClassLoader = classLoader;
@@ -205,8 +206,10 @@ public abstract class Executor {
         if (flinkInterceptorResult.isNoExecute()) {
             return CustomTableResultImpl.TABLE_RESULT_OK;
         }
-
+        // 这个setConfig感觉都没什么用
         KerberosUtil.authenticate(setConfig);
+        // 通过这里读取executorConfig中的config，我拿到从JobManager.init()中从flinkConfig中读取的配置，用来给KerberosUtil做认证
+        KerberosUtil.authenticate(executorConfig.getConfig());
         return tableEnvironment.executeSql(statement);
     }
 

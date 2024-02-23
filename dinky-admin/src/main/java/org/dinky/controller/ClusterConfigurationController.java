@@ -66,6 +66,7 @@ public class ClusterConfigurationController {
      * @param clusterConfiguration
      * @return
      */
+    // TODO 在这个Controller里面执行的saveOrUpdate
     @PutMapping("/saveOrUpdate")
     @Log(title = "Insert Or Update Cluster Config", businessType = BusinessType.INSERT_OR_UPDATE)
     @ApiOperation("Insert Or Update Cluster Config")
@@ -83,6 +84,8 @@ public class ClusterConfigurationController {
             },
             mode = SaMode.OR)
     public Result<Void> saveOrUpdateClusterConfig(@RequestBody ClusterConfigurationDTO clusterConfiguration) {
+        // TODO 为了处理前端在传参的时候会把flinkConfigList当成FlinkClusterConfig的参数而不是FlinkConfig的参数，我在FlinkClusterConfig加了一个List，在controller层给它转一下
+        clusterConfiguration.getConfig().getFlinkConfig().setFlinkConfigList(clusterConfiguration.getConfig().getFlinkConfigList());
         TestResult testResult = clusterConfigurationService.testGateway(clusterConfiguration);
         clusterConfiguration.setIsAvailable(testResult.isAvailable());
         if (clusterConfigurationService.saveOrUpdate(clusterConfiguration.toBean())) {

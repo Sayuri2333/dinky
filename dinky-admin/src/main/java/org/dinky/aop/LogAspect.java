@@ -135,7 +135,6 @@ public class LogAspect {
             operLog.setRequestMethod(ServletUtils.getRequest().getMethod());
             // 处理设置注解上的参数
             getControllerMethodDescription(joinPoint, controllerLog, operLog);
-
             operLog.setOperateTime(LocalDateTime.now());
 
             // 保存数据库

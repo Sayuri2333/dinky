@@ -25,6 +25,8 @@ import org.dinky.gateway.config.FlinkConfig;
 import org.dinky.gateway.config.K8sConfig;
 import org.dinky.gateway.enums.GatewayType;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import io.swagger.annotations.ApiModel;
@@ -58,6 +60,14 @@ public class FlinkClusterConfig {
             dataType = "FlinkConfig",
             notes = "Configuration settings specific to Flink")
     private FlinkConfig flinkConfig;
+
+    // flink的额外参数配置
+    @ApiModelProperty(
+            value = "Additional configuration properties",
+            dataType = "List",
+            example = "[{\"name\":\"key1\",\"value\":\"value1\"}, {\"name\":\"key2\",\"value\":\"value2\"}]",
+            notes = "Additional configuration properties for the job on web page")
+    private List<CustomConfig> flinkConfigList = new ArrayList<>();
 
     @ApiModelProperty(
             value = "Application Configuration",

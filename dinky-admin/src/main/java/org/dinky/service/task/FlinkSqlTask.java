@@ -28,6 +28,7 @@ import org.dinky.gateway.enums.GatewayType;
 import org.dinky.job.JobManager;
 import org.dinky.job.JobResult;
 import org.dinky.service.TaskService;
+import org.dinky.service.impl.ClusterConfigurationServiceImpl;
 import org.dinky.service.impl.TaskServiceImpl;
 import org.dinky.utils.JsonUtils;
 
@@ -75,6 +76,7 @@ public class FlinkSqlTask extends BaseTask {
     protected JobManager getJobManager() {
         // 获得TaskService，使用其buildJobSubmitConfig基于task配置创建作业配置
         TaskService taskService = SpringUtil.getBean(TaskServiceImpl.class);
+        ClusterConfigurationServiceImpl clusterConfigurationService = SpringUtil.getBean(ClusterConfigurationServiceImpl.class);
         return JobManager.build(taskService.buildJobSubmitConfig(task));
     }
 

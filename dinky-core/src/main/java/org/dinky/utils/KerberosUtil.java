@@ -50,7 +50,7 @@ public class KerberosUtil {
 
     public static void authenticate(Map<String, String> configuration) {
         configuration.forEach((k, v) -> logger.debug("Flink configuration key: [{}], value: [{}]", k, v));
-        String krb5ConfPath = (String) configuration.getOrDefault("java.security.krb5.conf", "");
+        String krb5ConfPath = (String) configuration.getOrDefault("security.kerberos.krb5-conf.path", "");
         String keytabPath = (String) configuration.getOrDefault("security.kerberos.login.keytab", "");
         String principal = (String) configuration.getOrDefault("security.kerberos.login.principal", "");
 
@@ -60,7 +60,7 @@ public class KerberosUtil {
         }
         logger.info("Kerberos authentication mode");
         if (Asserts.isNullString(krb5ConfPath)) {
-            logger.error("Parameter [java.security.krb5.conf] is null or empty.");
+            logger.error("Parameter [security.kerberos.krb5-conf.path] is null or empty.");
             return;
         }
 

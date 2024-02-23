@@ -19,6 +19,7 @@
 
 package org.dinky.job;
 
+import cn.hutool.extra.spring.SpringUtil;
 import org.dinky.api.FlinkAPI;
 import org.dinky.assertion.Asserts;
 import org.dinky.classloader.DinkyClassLoader;
@@ -82,11 +83,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -209,6 +206,7 @@ public class JobManager {
     // 初始化方法
     public void init() {
         // 如果不是planMode，也就是说需要实际执行的话
+        // TODO 需要在创建Executor的时候把这次Job需要用到的集群信息拿到，把其中的config.flinkConfig提出来存到executorConfig的config里，然后再传给KerberosUtil来判断
         if (!isPlanMode) {
             runMode = GatewayType.get(config.getType());
             // useGateway字段判断是否需要dinky自建集群，比如pre-job或者application模式
@@ -218,6 +216,11 @@ public class JobManager {
         useStatementSet = config.isStatementSet();
         useRestAPI = SystemConfiguration.getInstances().isUseRestAPI();
         executorConfig = config.getExecutorSetting();
+        // 把Flink集群的配置都写到executorConfig中。Flink集群配置里会包含Kerberos的配置，需要传给executor，executor会在执行每句statement的时候都认证一次
+        HashMap<String, String> flinkClusterConfig = new HashMap<>();
+        config.getGatewayConfig().getFlinkConfig().getFlinkConfigList()
+                .forEach(customConfig -> flinkClusterConfig.put(customConfig.getName(), customConfig.getValue()));
+        executorConfig.setConfig(flinkClusterConfig);
         executorConfig.setPlan(isPlanMode);
         // 使用工厂方法创建一个执行器。
         executor = ExecutorFactory.buildExecutor(executorConfig, getDinkyClassLoader());
