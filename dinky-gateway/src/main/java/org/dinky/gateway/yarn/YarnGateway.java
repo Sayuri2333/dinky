@@ -123,7 +123,7 @@ public abstract class YarnGateway extends AbstractGateway {
         if (Asserts.isNotNullString(clusterConfig.getHadoopConfigPath())) {
             configuration.setString(HADOOP_CONFIG, clusterConfig.getHadoopConfigPath());
         }
-
+        logger.info(configuration.toString());
         if (configuration.containsKey(SecurityOptions.KERBEROS_LOGIN_KEYTAB.key())) {
             try {
                 SecurityUtils.install(new SecurityConfiguration(configuration));
