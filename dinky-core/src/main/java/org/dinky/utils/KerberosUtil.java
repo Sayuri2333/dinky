@@ -27,6 +27,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +38,12 @@ import org.slf4j.LoggerFactory;
 public class KerberosUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosUtil.class);
+
+    // 简单的单线程定时任务执行器
+    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    // TODO 为了不让每次认证方法被调用时都创建新的定时任务导致任务数量爆炸，我们会检查这个静态变量是否有值，有的话就不创建新的了
+    private static ScheduledFuture<?> lastTask = null; // 用于跟踪最后一个任务
 
     private static void reset() {
         try {
@@ -86,6 +96,19 @@ public class KerberosUtil {
             logger.error(
                     "Kerberos [{}] authentication success.",
                     UserGroupInformation.getLoginUser().getUserName());
+            // TODO 设置定时任务刷新票据就完事了。 ugi是JVM级别的，一个线程执行了登录其他线程都能用
+            long refreshInterval = TimeUnit.HOURS.toMillis(12);
+            // 防止重复创建task
+            if (lastTask == null){
+                lastTask = scheduler.scheduleWithFixedDelay(() -> {
+                    try {
+                        logger.info("Refreshing Kerberos ticket.");
+                        UserGroupInformation.loginUserFromKeytab(principal, keytabPath);
+                    } catch (IOException e) {
+                        logger.error("Error refreshing Kerberos ticket: " + e.getMessage());
+                    }
+                }, refreshInterval, refreshInterval, TimeUnit.MILLISECONDS);
+            }
         } catch (IOException e) {
             logger.error("Kerberos authentication failed. ", e);
         }
