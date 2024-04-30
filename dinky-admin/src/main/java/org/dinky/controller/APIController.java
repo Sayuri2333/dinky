@@ -28,6 +28,7 @@ import org.dinky.data.enums.BusinessType;
 import org.dinky.data.enums.Status;
 import org.dinky.data.exception.NotSupportExplainExcepition;
 import org.dinky.data.model.job.JobInstance;
+import org.dinky.data.result.DlinkResult;
 import org.dinky.data.result.Result;
 import org.dinky.data.result.SqlExplainResult;
 import org.dinky.gateway.enums.SavePointType;
@@ -83,6 +84,19 @@ public class APIController {
             return Result.succeed(jobResult, Status.EXECUTE_SUCCESS);
         } else {
             return Result.failed(jobResult, jobResult.getError());
+        }
+    }
+
+    @GetMapping("/submitTask")
+    @ApiOperation("Submit Task By Get")
+    public DlinkResult submitTaskByGet(@RequestParam Integer id) throws Exception{
+        TaskSubmitDto submitDto = TaskSubmitDto.builder().id(id).build();
+        taskService.initTenantByTaskId(submitDto.getId());
+        JobResult jobResult = taskService.submitTask(submitDto);
+        if (jobResult.isSuccess()) {
+            return DlinkResult.succeed(jobResult, "执行成功");
+        } else {
+            return DlinkResult.failed(jobResult, jobResult.getError());
         }
     }
 
@@ -156,9 +170,9 @@ public class APIController {
             required = true,
             dataType = "Integer",
             dataTypeClass = Integer.class)
-    public Result<JobInstance> getJobInstance(@RequestParam Integer id) {
+    public DlinkResult getJobInstance(@RequestParam Integer id) {
         jobInstanceService.initTenantByJobInstanceId(id);
-        return Result.succeed(jobInstanceService.getById(id));
+        return DlinkResult.succeed(jobInstanceService.getById(id), "获取成功");
     }
 
     @GetMapping("/getJobInstanceByTaskId")

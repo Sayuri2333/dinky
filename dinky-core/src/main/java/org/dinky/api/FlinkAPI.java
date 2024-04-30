@@ -54,6 +54,9 @@ import cn.hutool.http.Method;
 @SuppressWarnings("AlibabaClassNamingShouldBeCamel")
 public class FlinkAPI {
     private static final Logger logger = LoggerFactory.getLogger(FlinkAPI.class);
+    private static final String FALLBACK_ADDRESS = "http://utility01-cdp05.byd.com:18211";
+    private static final int MAX_RETRY = 5;
+    private static final int RETRY_INTERVAL = 1000; // 1000ms = 1s
 
     public static final String REST_TARGET_DIRECTORY = "rest.target-directory";
     public static final String ERRORS = "errors";
@@ -93,6 +96,67 @@ public class FlinkAPI {
         return parse(res);
     }
 
+    private String postResultWithRetry(String url, String body) {
+        for (int attempt = 0; attempt < MAX_RETRY; attempt++) {
+            try {
+                String res = HttpUtil.post(url, body, NetConstant.SERVER_TIME_OUT_ACTIVE);
+                if (cn.hutool.json.JSONUtil.isJson(res)) {
+                    return res;
+                } else {
+                    Thread.sleep(RETRY_INTERVAL);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Exception e) {
+                break; // Break the loop if there's an exception other than JSON parsing issue
+            }
+        }
+        return null;
+    }
+
+    private String patchResultWithRetry(String url, String body) {
+        for (int attempt = 0; attempt < MAX_RETRY; attempt++) {
+            try {
+                String res = HttpUtil.createRequest(Method.PATCH, url)
+                        .timeout(NetConstant.SERVER_TIME_OUT_ACTIVE)
+                        .body(body)
+                        .execute()
+                        .body();
+                if (cn.hutool.json.JSONUtil.isJson(res)) {
+                    return res;
+                } else {
+                    Thread.sleep(RETRY_INTERVAL);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Exception e) {
+                break; // Break the loop if there's an exception other than JSON parsing issue
+            }
+        }
+        return null;
+    }
+
+    private String getResultWithRetry(String url) {
+        for (int attempt = 0; attempt < MAX_RETRY; attempt++) {
+            try {
+                String res = HttpUtil.get(url, NetConstant.SERVER_TIME_OUT_ACTIVE);
+                if (cn.hutool.json.JSONUtil.isJson(res)) {
+                    return res;
+                } else {
+                    Thread.sleep(RETRY_INTERVAL);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Exception e) {
+                break; // Break the loop if there's an exception other than JSON parsing issue
+            }
+        }
+        return null;
+    }
+
     /**
      * get请求获取jobManager/TaskManager的日志 (结果为字符串并不是json格式)
      *
@@ -100,22 +164,41 @@ public class FlinkAPI {
      * @return {@link String}
      */
     private String getResult(String route) {
-        return HttpUtil.get(NetConstant.HTTP + address + NetConstant.SLASH + route, NetConstant.SERVER_TIME_OUT_ACTIVE);
+        try {
+            return HttpUtil.get(NetConstant.HTTP + address + NetConstant.SLASH + route, NetConstant.SERVER_TIME_OUT_ACTIVE);
+        } catch (Exception e) {
+            String fallbackUrl = FALLBACK_ADDRESS + NetConstant.SLASH + route;
+            return getResultWithRetry(fallbackUrl);
+        }
     }
 
     private JsonNode post(String route, String body) {
-        String res = HttpUtil.post(
-                NetConstant.HTTP + address + NetConstant.SLASH + route, body, NetConstant.SERVER_TIME_OUT_ACTIVE);
-        return parse(res);
+        try {
+            String url = NetConstant.HTTP + address + NetConstant.SLASH + route;
+            String res = HttpUtil.post(url, body, NetConstant.SERVER_TIME_OUT_ACTIVE);
+            return parse(res);
+        } catch (Exception e) {
+            String fallbackUrl = FALLBACK_ADDRESS + NetConstant.SLASH + route;
+            String res = postResultWithRetry(fallbackUrl, body);
+            return parse(res);
+        }
     }
 
     private JsonNode patch(String route, String body) {
-        String res = HttpUtil.createRequest(Method.PATCH, NetConstant.HTTP + address + NetConstant.SLASH + route)
-                .timeout(NetConstant.SERVER_TIME_OUT_ACTIVE)
-                .body(body)
-                .execute()
-                .body();
-        return parse(res);
+
+        try {
+            String url = NetConstant.HTTP + address + NetConstant.SLASH + route;
+            String res = HttpUtil.createRequest(Method.PATCH, url)
+                    .timeout(NetConstant.SERVER_TIME_OUT_ACTIVE)
+                    .body(body)
+                    .execute()
+                    .body();
+            return parse(res);
+        } catch (Exception e) {
+            String fallbackUrl = FALLBACK_ADDRESS + NetConstant.SLASH + route;
+            String res = patchResultWithRetry(fallbackUrl, body);
+            return parse(res);
+        }
     }
 
     public List<JsonNode> listJobs() {

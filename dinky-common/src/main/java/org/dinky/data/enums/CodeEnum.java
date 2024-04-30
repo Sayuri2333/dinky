@@ -30,6 +30,7 @@ public enum CodeEnum {
 
     EXCEPTION(5),
     PARAMS_ERROR(6),
+    NOTLOGIN(401),
     AUTHORIZE_ERROR(7);
 
     private Integer code;
