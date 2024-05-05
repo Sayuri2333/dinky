@@ -26,6 +26,7 @@ import org.dinky.app.util.FlinkAppUtil;
 import org.dinky.assertion.Asserts;
 import org.dinky.classloader.DinkyClassLoader;
 import org.dinky.config.Dialect;
+import org.dinky.constant.CustomerConfigureOptions;
 import org.dinky.constant.FlinkSQLConstant;
 import org.dinky.data.app.AppParamConfig;
 import org.dinky.data.app.AppTask;
@@ -43,11 +44,15 @@ import org.dinky.trans.parse.AddFileSqlParseStrategy;
 import org.dinky.trans.parse.AddJarSqlParseStrategy;
 import org.dinky.trans.parse.ExecuteJarParseStrategy;
 import org.dinky.url.RsURLStreamHandlerFactory;
+import org.dinky.utils.FlinkStreamEnvironmentUtil;
 import org.dinky.utils.SqlUtil;
 import org.dinky.utils.ZipUtils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.api.common.Plan;
+import org.apache.flink.api.dag.Pipeline;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.python.PythonOptions;
@@ -63,6 +68,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -73,23 +79,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.http.HttpUtil;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * FlinkSQLFactory
  *
  * @since 2021/10/27
  */
+@Slf4j
 public class Submitter {
-    private static final Logger log = LoggerFactory.getLogger(Submitter.class);
     public static Executor executor = null;
 
     private static void initSystemConfiguration() throws SQLException {
@@ -108,7 +112,6 @@ public class Submitter {
         log.info("{} Start Submit Job:{}", LocalDateTime.now(), config.getTaskId());
 
         AppTask appTask = DBUtil.getTask(config.getTaskId());
-        String sql = buildSql(appTask);
 
         ExecutorConfig executorConfig = ExecutorConfig.builder()
                 .type(appTask.getType())
@@ -130,6 +133,7 @@ public class Submitter {
         loadDep(appTask.getType(), config.getTaskId(), executorConfig);
         log.info("The job configuration is as follows: {}", executorConfig);
 
+        String sql = readSql(executor);
         String[] statements = SqlUtil.getStatements(sql);
         Optional<JobClient> jobClient = Optional.empty();
         try {
@@ -149,26 +153,21 @@ public class Submitter {
         }
     }
 
-    public static String buildSql(AppTask appTask) throws SQLException {
-        StringBuilder sb = new StringBuilder();
-        // build env task
-        if (Asserts.isNotNull(appTask.getEnvId()) && appTask.getEnvId() > 0) {
-            AppTask envTask = DBUtil.getTask(appTask.getEnvId());
-            if (Asserts.isNotNullString(envTask.getStatement())) {
-                log.info("use statement is enable, load env:{}", envTask.getName());
-                sb.append(envTask.getStatement()).append("\n");
+    private static String readSql(Executor executor) {
+        Configuration configuration =
+                (Configuration) executor.getStreamExecutionEnvironment().getConfiguration();
+        String sqlFileName = configuration.get(CustomerConfigureOptions.EXEC_SQL_FILE);
+        String confDir = configuration.get(CustomerConfigureOptions.DINKY_CONF_DIR);
+        File sqlFile = new File(sqlFileName);
+        if (!sqlFile.exists()) {
+            sqlFile = new File(confDir, sqlFileName);
+            if (!sqlFile.exists()) {
+                log.error("sql file not found,current dir:{},conf dir:{}", System.getProperty("user.dir"), confDir);
+                throw new RuntimeException("sql file not found");
             }
         }
-        // build Database golbal varibals
-        if (appTask.getFragment()) {
-            log.info("Global env is enable, load database flink config env and global variables.");
-            // append database flink config env
-            sb.append(DBUtil.getDbSourceSQLStatement()).append("\n");
-            // append global variables
-            sb.append(DBUtil.getGlobalVariablesStatement()).append("\n");
-        }
-        sb.append(appTask.getStatement());
-        return sb.toString();
+        log.info("start read sql file path:{}", sqlFile.getAbsolutePath());
+        return FileUtil.readString(sqlFile, Charset.defaultCharset());
     }
 
     private static void loadDep(String type, Integer taskId, ExecutorConfig executorConfig) {
@@ -256,20 +255,33 @@ public class Submitter {
             String sqlStatement = executor.pretreatStatement(statement);
             if (ExecuteJarParseStrategy.INSTANCE.match(sqlStatement)) {
                 ExecuteJarOperation executeJarOperation = new ExecuteJarOperation(sqlStatement);
-                StreamGraph streamGraph = executeJarOperation.getStreamGraph(executor.getCustomTableEnvironment());
+                Pipeline pipeline = executeJarOperation.getStreamGraph(executor.getCustomTableEnvironment());
                 ReadableConfig configuration =
                         executor.getStreamExecutionEnvironment().getConfiguration();
-                streamGraph
-                        .getExecutionConfig()
-                        .configure(configuration, Thread.currentThread().getContextClassLoader());
-                streamGraph.getCheckpointConfig().configure(configuration);
-                streamGraph.setJobName(executor.getExecutorConfig().getJobName());
-                String savePointPath = executor.getExecutorConfig().getSavePointPath();
-                if (Asserts.isNotNullString(savePointPath)) {
-                    streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(
-                            savePointPath, configuration.get(SavepointConfigOptions.SAVEPOINT_IGNORE_UNCLAIMED_STATE)));
+                if (pipeline instanceof StreamGraph) {
+                    // stream job
+                    StreamGraph streamGraph = (StreamGraph) pipeline;
+                    streamGraph
+                            .getExecutionConfig()
+                            .configure(configuration, Thread.currentThread().getContextClassLoader());
+                    streamGraph.getCheckpointConfig().configure(configuration);
+                    streamGraph.setJobName(executor.getExecutorConfig().getJobName());
+                    String savePointPath = executor.getExecutorConfig().getSavePointPath();
+                    if (Asserts.isNotNullString(savePointPath)) {
+                        streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(
+                                savePointPath,
+                                configuration.get(SavepointConfigOptions.SAVEPOINT_IGNORE_UNCLAIMED_STATE)));
+                    }
+                } else if (pipeline instanceof Plan) {
+                    // batch job
+                    Plan plan = (Plan) pipeline;
+                    plan.getExecutionConfig()
+                            .configure(configuration, Thread.currentThread().getContextClassLoader());
+                    plan.setJobName(executor.getExecutorConfig().getJobName());
                 }
-                JobClient client = executor.getStreamExecutionEnvironment().executeAsync(streamGraph);
+
+                JobClient client =
+                        FlinkStreamEnvironmentUtil.executeAsync(pipeline, executor.getStreamExecutionEnvironment());
                 jobClient = Optional.of(client);
                 break;
             }

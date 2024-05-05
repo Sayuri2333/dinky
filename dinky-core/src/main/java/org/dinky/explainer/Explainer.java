@@ -44,15 +44,16 @@ import org.dinky.trans.parse.AddJarSqlParseStrategy;
 import org.dinky.trans.parse.ExecuteJarParseStrategy;
 import org.dinky.trans.parse.SetSqlParseStrategy;
 import org.dinky.utils.DinkyClassLoaderUtil;
+import org.dinky.utils.FlinkStreamEnvironmentUtil;
 import org.dinky.utils.IpUtil;
 import org.dinky.utils.LogUtil;
 import org.dinky.utils.SqlUtil;
 import org.dinky.utils.URLUtils;
 
+import org.apache.flink.api.dag.Pipeline;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.runtime.rest.messages.JobPlanInfo;
-import org.apache.flink.streaming.api.graph.StreamGraph;
 
 import java.net.URL;
 import java.time.LocalDateTime;
@@ -65,6 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.text.StrBuilder;
 import cn.hutool.core.text.StrFormatter;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -111,8 +113,10 @@ public class Explainer {
         List<StatementParam> execute = new ArrayList<>();
         List<String> statementList = new ArrayList<>();
         List<UDF> udfList = new ArrayList<>();
+        StrBuilder parsedSql = new StrBuilder();
         for (String item : statements) {
             String statement = executor.pretreatStatement(item);
+            parsedSql.append(statement).append(";\n");
             if (statement.isEmpty()) {
                 continue;
             }
@@ -169,7 +173,7 @@ public class Explainer {
                 statementList.add(statement);
             }
         }
-        return new JobParam(statementList, ddl, trans, execute, CollUtil.removeNull(udfList));
+        return new JobParam(statementList, ddl, trans, execute, CollUtil.removeNull(udfList), parsedSql.toString());
     }
 
     private Configuration getCombinationConfig() {
@@ -198,10 +202,19 @@ public class Explainer {
 
     public ExplainResult explainSql(String statement) {
         log.info("Start explain FlinkSQL...");
-        JobParam jobParam = pretreatStatements(SqlUtil.getStatements(statement));
+        JobParam jobParam;
         List<SqlExplainResult> sqlExplainRecords = new ArrayList<>();
         int index = 1;
         boolean correct = true;
+        try {
+            jobParam = pretreatStatements(SqlUtil.getStatements(statement));
+        } catch (Exception e) {
+            SqlExplainResult.Builder resultBuilder = SqlExplainResult.Builder.newBuilder();
+            resultBuilder.error(e.getMessage()).parseTrue(false);
+            sqlExplainRecords.add(resultBuilder.build());
+            log.error("failed pretreatStatements:", e);
+            return new ExplainResult(false, sqlExplainRecords.size(), sqlExplainRecords);
+        }
         for (StatementParam item : jobParam.getDdl()) {
             SqlExplainResult.Builder resultBuilder = SqlExplainResult.Builder.newBuilder();
             try {
@@ -300,9 +313,9 @@ public class Explainer {
                 } else if (ExecuteJarParseStrategy.INSTANCE.match(item.getValue())) {
 
                     List<URL> allFileByAdd = jobManager.getAllFileSet();
-                    StreamGraph streamGraph = new ExecuteJarOperation(item.getValue())
+                    Pipeline pipeline = new ExecuteJarOperation(item.getValue())
                             .explain(executor.getCustomTableEnvironment(), allFileByAdd);
-                    sqlExplainResult.setExplain(streamGraph.getStreamingPlanAsJSON());
+                    sqlExplainResult.setExplain(FlinkStreamEnvironmentUtil.getStreamingPlanAsJSON(pipeline));
                 } else {
                     executor.executeSql(item.getValue());
                 }

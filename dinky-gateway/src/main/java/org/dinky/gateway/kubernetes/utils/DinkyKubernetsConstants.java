@@ -17,28 +17,10 @@
  *
  */
 
-package org.dinky.configure.cache;
+package org.dinky.gateway.kubernetes.utils;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
-
-import org.springframework.cache.Cache;
-import org.springframework.cache.support.AbstractCacheManager;
-
-public class PaimonCacheManager extends AbstractCacheManager {
-
-    @Override
-    protected Collection<? extends Cache> loadCaches() {
-        Collection<Cache> caches = new LinkedHashSet<>();
-        for (String cacheName : this.getCacheNames()) {
-            Cache cache = this.getCache(cacheName);
-            caches.add(cache);
-        }
-        return caches;
-    }
-
-    @Override
-    protected Cache getMissingCache(String name) {
-        return new PaimonCache(name);
-    }
+/** Constants for kubernetes. */
+public class DinkyKubernetsConstants {
+    public static final String DINKY_CONF_VOLUME = "dinky-config-volume";
+    public static final String DINKY_CONF_VOLUME_PERFIX = "dinky-config-";
 }
