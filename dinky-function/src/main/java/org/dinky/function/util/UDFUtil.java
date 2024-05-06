@@ -385,7 +385,9 @@ public class UDFUtil {
             ClassScanner classScanner =
                     new ClassScanner("", aClass -> ClassUtil.isAssignable(UserDefinedFunction.class, aClass));
             classScanner.setClassLoader(loader);
-            ReflectUtil.invoke(classScanner, "scanJar", new JarFile(jarPath));
+            synchronized (UDFUtil.class) {
+                ReflectUtil.invoke(classScanner, "scanJar", new JarFile(jarPath));
+            }
             Set<Class<? extends UserDefinedFunction>> classes =
                     (Set<Class<? extends UserDefinedFunction>>) ReflectUtil.getFieldValue(classScanner, "classes");
             for (Class<? extends UserDefinedFunction> aClass : classes) {
